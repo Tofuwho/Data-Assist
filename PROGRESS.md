@@ -1,0 +1,25 @@
+# ClearData Implementation Progress Log
+
+## Phase 0 — Foundation
+
+### Task 0.1 — Scaffold Monorepo, Docker Compose, .env.example
+- **Status:** Completed
+- **Decisions Made:**
+  - Initialized Git repository.
+  - Configured Next.js (App Router, TypeScript, Tailwind CSS, ESLint) in `apps/web`.
+  - Configured FastAPI backend in `apps/api` with structured service architecture (`routers`, `models`, `schemas`, `services/ingest`, `services/profiling`, `services/cleaning`, `services/ai`, `services/reports`, `workers`, `tests`).
+  - Added Dockerfiles for both `apps/web` and `apps/api`, and root `docker-compose.yml` orchestrating `postgres`, `redis`, `api`, and `web`.
+  - Created `.env.example` documenting all configuration keys.
+  - Setup local Python 3.11 virtual environment with Polars, SQLAlchemy, Alembic, FastAPI, Pydantic v2, Pytest, and Ruff.
+- **Notes / Observations:**
+  - Docker daemon is not installed directly on this Windows development host, but Dockerfiles and `docker-compose.yml` are written for containerized deployment and verified against standard Compose specification.
+  - Local tests run directly via Python 3.11 (`apps/api/.venv`) and Node.js (`apps/web`).
+
+### Task 0.2 — CI Workflow (Lint, Type Check, Tests)
+- **Status:** Completed
+- **Decisions Made:**
+  - Configured GitHub Actions CI in `.github/workflows/ci.yml`.
+  - Backend job runs on Ubuntu with PostgreSQL 16 and Redis services, executing Ruff lint and Pytest.
+  - Frontend job runs ESLint and Next.js production build (`npm run build`).
+
+---
