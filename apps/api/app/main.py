@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.config import settings
+from app.routers import auth, workspaces
 
 app = FastAPI(
     title="ClearData API",
@@ -63,6 +64,11 @@ async def generic_exception_handler(request: Request, exc: Exception):
             }
         },
     )
+
+
+# Mount routers
+app.include_router(auth.router, prefix="/api/v1")
+app.include_router(workspaces.router, prefix="/api/v1")
 
 
 @app.get("/api/v1/health", tags=["Health"])
