@@ -74,3 +74,15 @@
   - Documented Python 3.11 requirement in project documentation.
 - **Notes / Observations:**
   - Python 3.11 is fully supported by all dependencies including Polars, SQLAlchemy 2.0, FastAPI, and Pydantic v2.
+
+### Pre-flight P.3 — No-Docker local development path
+- **Status:** Completed
+- **Decisions Made:**
+  - Confirmed the dev host has no Docker daemon installed.
+  - Formulated and verified the native no-Docker local dev path:
+    - Backend: Python 3.11 venv with Uvicorn (`uvicorn app.main:app --reload --port 8000`).
+    - Frontend: Next.js dev server (`npm run dev` on port 3000).
+    - Database: Supports local or hosted PostgreSQL via `DATABASE_URL`, with seamless SQLite fallback (`sqlite:///./cleardata.db`) for offline development.
+    - Workers: Configured in-process synchronous job dispatch (`JOBS_INLINE=true`) to eliminate mandatory Redis worker dependencies during local Windows development.
+- **Notes / Observations:**
+  - Both containerized (Docker Compose) and native no-Docker workflows are fully documented in `README.md`.
