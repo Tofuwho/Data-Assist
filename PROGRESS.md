@@ -52,3 +52,16 @@
   - Validated with `npm run lint` (0 errors), `npm run build` (Turbopack production build passed), Ruff lint (all checks passed), and Pytest (all 3 suites passing).
 
 ---
+
+## Pre-flight Checks
+
+### Pre-flight P.1 — Confirm CI is green on latest master commit
+- **Status:** Completed
+- **Decisions Made:**
+  - Executed full test and lint suite matching CI jobs:
+    - Backend: Ruff lint (`ruff check apps/api`) passed with 0 errors.
+    - Backend: Pytest (`pytest apps/api`) passed with 3/3 test suites passing.
+    - Frontend: ESLint (`npm run lint` in `apps/web`) passed with 0 errors.
+    - Frontend: Next.js production build (`npm run build` in `apps/web`) compiled and exported static routes cleanly.
+- **Notes / Observations:**
+  - All automated checks configured in `.github/workflows/ci.yml` pass cleanly.
