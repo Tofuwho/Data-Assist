@@ -20,7 +20,7 @@ Per `PROGRESS.md`, **Phase 0 (Foundation) is complete**:
 These come from gaps and risks visible in `PROGRESS.md`. Verify each against the actual code; if it's already fine, note that in `PROGRESS.md` and move on.
 
 - [x] **P.1 — Confirm CI is green on the latest `master` commit.** Check the Actions tab or run the same commands locally (Ruff, Pytest with Postgres and Redis available, ESLint, `npm run build`). Fix anything red.
-- [ ] **P.2 — Python version mismatch.** The plan specified Python 3.12; local dev used 3.11. Pick one version and make `apps/api/Dockerfile`, the CI workflow, and the local venv all use it. Document it in the README.
+- [x] **P.2 — Python version mismatch.** The plan specified Python 3.12; local dev used 3.11. Pick one version and make `apps/api/Dockerfile`, the CI workflow, and the local venv all use it. Document it in the README.
 - [ ] **P.3 — Docker Compose was never run.** The dev host has no Docker daemon, so `docker-compose.yml` is unverified. Do not assume it works. Either run it (if Docker is available now) or add a **no-Docker local dev path** documented in the README: local Postgres + Redis (or a hosted dev instance), `uvicorn` for the API, `npm run dev` for the web app. Whichever path you use, record it in `PROGRESS.md`.
 - [ ] **P.4 — Test database.** Check what the tests run against. If they use SQLite while production uses PostgreSQL, switch tests that touch JSON columns, constraints, or migrations to PostgreSQL (CI already provides it). SQLite hides real bugs here.
 - [ ] **P.5 — Background jobs on Windows.** The plan uses Redis + RQ, and RQ's default worker relies on `fork`, which does not work on native Windows. Resolve this now:

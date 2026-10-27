@@ -30,7 +30,7 @@ Build a web app that takes **ambiguous, messy company data** (CSV/Excel uploads)
 | Frontend | Next.js (App Router) + TypeScript + Tailwind |
 | Data grid | TanStack Table (virtualized) |
 | Charts | Recharts |
-| Backend API | Python 3.12 + FastAPI |
+| Backend API | Python 3.11 + FastAPI |
 | Data processing | Polars (pandas allowed where needed) |
 | Database | PostgreSQL + SQLAlchemy + Alembic migrations |
 | Queue / workers | Redis + RQ (or Celery) |

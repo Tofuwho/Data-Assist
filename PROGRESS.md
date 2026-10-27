@@ -65,3 +65,12 @@
     - Frontend: Next.js production build (`npm run build` in `apps/web`) compiled and exported static routes cleanly.
 - **Notes / Observations:**
   - All automated checks configured in `.github/workflows/ci.yml` pass cleanly.
+
+### Pre-flight P.2 — Python version alignment
+- **Status:** Completed
+- **Decisions Made:**
+  - Audited runtime environments: local machine has Python 3.11.9, `apps/api/Dockerfile` uses `python:3.11-slim`, and `.github/workflows/ci.yml` uses `python-version: "3.11"`.
+  - Updated `BUILD_PLAN.md` specification to explicitly state Python 3.11 to ensure 100% parity across local virtual environments, Docker containers, and CI runners.
+  - Documented Python 3.11 requirement in project documentation.
+- **Notes / Observations:**
+  - Python 3.11 is fully supported by all dependencies including Polars, SQLAlchemy 2.0, FastAPI, and Pydantic v2.
