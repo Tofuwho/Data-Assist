@@ -1,8 +1,4 @@
-import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 
-from app.models.database import Base
 from app.models.entities import (
     Approval,
     AuditLog,
@@ -21,19 +17,6 @@ from app.models.entities import (
     User,
     Workspace,
 )
-
-
-@pytest.fixture
-def db_session():
-    engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(bind=engine)
-    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    session = TestingSessionLocal()
-    try:
-        yield session
-    finally:
-        session.close()
-        Base.metadata.drop_all(bind=engine)
 
 
 def test_full_schema_creation_and_relationships(db_session):
@@ -203,3 +186,95 @@ def test_full_schema_creation_and_relationships(db_session):
     assert len(queried_dataset.columns) == 1
     assert len(queried_dataset.rows) == 1
     assert queried_dataset.rows[0].raw_json["Amount"] == "$1,200.50"
+
+
+def test_json_column_integrity_and_complex_data(db_session):
+    """Verify that JSON columns preserve structure, nested types, and array indexing."""
+    ws = Workspace(name="JSON Test Workspace")
+    db_session.add(ws)
+    db_session.commit()
+
+    proj = Project(workspace_id=ws.id, name="JSON Test Project")
+    db_session.add(proj)
+    db_session.commit()
+
+    dataset = Dataset(
+        project_id=proj.id,
+        name="test_json.csv",
+        source_type="csv",
+        raw_file_path="/tmp/test_json.csv",
+    )
+    db_session.add(dataset)
+    db_session.commit()
+
+    # Column with detailed stats JSON
+    stats_payload = {
+        "null_count": 5,
+        "null_pct": 0.05,
+        "distinct_count": 95,
+        "top_values": [{"val": "A", "count": 20}, {"val": "B", "count": 15}],
+        "format_patterns": {"99/99/9999": 90, "YYYY-MM-DD": 10},
+    }
+    col = ColumnModel(
+        dataset_id=dataset.id,
+        name="complex_col",
+        inferred_type="mixed",
+        stats_json=stats_payload,
+    )
+    db_session.add(col)
+
+    # Row with nested JSON structure in raw_json
+    nested_raw = {
+        "id": 101,
+        "customer": {"name": "Alice", "tags": ["vip", "enterprise"]},
+        "flags": [True, False, True],
+        "metadata": None,
+    }
+    row = RowModel(dataset_id=dataset.id, row_index=0, raw_json=nested_raw)
+    db_session.add(row)
+    db_session.commit()
+
+    # Query back and verify fidelity
+    queried_col = db_session.query(ColumnModel).filter_by(id=col.id).first()
+    assert queried_col.stats_json["null_count"] == 5
+    assert queried_col.stats_json["top_values"][0]["val"] == "A"
+    assert queried_col.stats_json["format_patterns"]["99/99/9999"] == 90
+
+    queried_row = db_session.query(RowModel).filter_by(id=row.id).first()
+    assert queried_row.raw_json["customer"]["name"] == "Alice"
+    assert "vip" in queried_row.raw_json["customer"]["tags"]
+    assert queried_row.raw_json["flags"] == [True, False, True]
+
+
+def test_cascade_deletes_and_constraints(db_session):
+    """Verify foreign key cascading deletion and constraint integrity."""
+    ws = Workspace(name="Cascade Test Workspace")
+    db_session.add(ws)
+    db_session.commit()
+
+    proj = Project(workspace_id=ws.id, name="Cascade Project")
+    db_session.add(proj)
+    db_session.commit()
+
+    dataset = Dataset(
+        project_id=proj.id,
+        name="cascade_ds.csv",
+        source_type="csv",
+        raw_file_path="/tmp/cascade.csv",
+    )
+    db_session.add(dataset)
+    db_session.commit()
+
+    ds_id = dataset.id
+    proj_id = proj.id
+
+    # Verify entities exist
+    assert db_session.query(Project).filter_by(id=proj_id).first() is not None
+    assert db_session.query(Dataset).filter_by(id=ds_id).first() is not None
+
+    # Deleting workspace must cascade and delete project and dataset
+    db_session.delete(ws)
+    db_session.commit()
+
+    assert db_session.query(Project).filter_by(id=proj_id).first() is None
+    assert db_session.query(Dataset).filter_by(id=ds_id).first() is None

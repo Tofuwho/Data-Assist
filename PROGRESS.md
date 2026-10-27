@@ -86,3 +86,15 @@
     - Workers: Configured in-process synchronous job dispatch (`JOBS_INLINE=true`) to eliminate mandatory Redis worker dependencies during local Windows development.
 - **Notes / Observations:**
   - Both containerized (Docker Compose) and native no-Docker workflows are fully documented in `README.md`.
+
+### Pre-flight P.4 — Test database configuration
+- **Status:** Completed
+- **Decisions Made:**
+  - Audited previous tests and found hardcoded `sqlite:///:memory:` which bypassed PostgreSQL even when `DATABASE_URL` was provided in CI.
+  - Implemented centralized test fixtures in `apps/api/tests/conftest.py`:
+    - Auto-detects `DATABASE_URL`: connects to PostgreSQL when configured and reachable (as in CI), executing tests against real PostgreSQL.
+    - Gracefully falls back to SQLite in-memory with `PRAGMA foreign_keys=ON` for offline local developer runs.
+    - Centralized session cleanup respecting foreign key dependency ordering across test runs.
+  - Added dedicated test coverage in `test_models.py` verifying JSON column integrity (nested objects, lists, nulls) and cascading foreign key constraints.
+- **Notes / Observations:**
+  - All 5 test suites pass cleanly. CI now tests JSON columns and constraints directly against PostgreSQL 16.
