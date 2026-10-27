@@ -1,0 +1,16 @@
+Transaction_ID,Customer_Name,Date,Amount,Region,Product_Category,Status
+TX1001,Acme Corp,2024-01-15,$1,250.00,NY,Software,Completed
+TX1002,acme corp,01/15/2024,$1,250.00,New York,Software,Completed
+TX1003,Globex Inc.,16-Jan-2024,3400 USD,CA,Hardware,Completed
+TX1004,Globex,2024.01.17,$ 500,CALIFORNIA,Hardware,Pending
+TX1005,Initech LLC,2024/01/18,1200.50,N.Y.,Services,
+TX1006,Soylent Corp,01-19-2024,€850.00,Texas,Hardware,Completed
+TX1007,Initech,2024-01-20,$2,100.00,new york,Services,Completed
+TX1008,Hooli,N/A,invalid_amount,Calif.,Cloud,Failed
+TX1009,Massive Dynamic,2024-01-22,$4,500.00,TX,Consulting,Completed
+TX1010,Acme Corp,2024-01-23,$1,250.00,NY,Software,Completed
+TX1011,Wayne Enterprises,01/24/2024,  1,750.00 ,NY,Security,Pending
+TX1012,Stark Industries,25-Jan-2024,$9,800.00,California,Hardware,Completed
+TX1013,,2024-01-26,$320.00,FL,Supplies,Completed
+TX1014,Umbrella Corp,2024-01-27,$0.00,Florida,Biotech,Refunded
+TX1015,Cyberdyne Systems,2024-01-28,$12,450.00,TX,Robotics,Completed

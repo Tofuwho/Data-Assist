@@ -89,11 +89,11 @@ Create with Alembic migrations.
 ## 5. Phases and tasks
 
 ### Phase 0 — Foundation
-- [ ] **0.1** Scaffold monorepo, Docker Compose (api, web, postgres, redis), `.env.example`.
-- [ ] **0.2** CI workflow: lint, type check, tests for both apps.
-- [ ] **0.3** Alembic setup and initial migration with the tables above.
-- [ ] **0.4** Auth (register, login, JWT), workspace creation, role-based permission dependency in FastAPI.
-- [ ] **0.5** Frontend shell: login, workspace switcher, project list.
+- [x] **0.1** Scaffold monorepo, Docker Compose (api, web, postgres, redis), `.env.example`.
+- [x] **0.2** CI workflow: lint, type check, tests for both apps.
+- [x] **0.3** Alembic setup and initial migration with the tables above.
+- [x] **0.4** Auth (register, login, JWT), workspace creation, role-based permission dependency in FastAPI.
+- [x] **0.5** Frontend shell: login, workspace switcher, project list.
 
 **Done when:** `docker compose up` runs everything, a user can sign up, create a workspace and a project, and CI is green.
 

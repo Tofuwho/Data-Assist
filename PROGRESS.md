@@ -40,4 +40,15 @@
   - Built reusable `require_workspace_role(...)` FastAPI dependency ensuring strict RBAC across `admin`, `steward`, `stakeholder`, and `contributor`.
   - Added full end-to-end integration tests in `apps/api/tests/test_auth_and_workspaces.py`.
 
+### Task 0.5 — Frontend Shell (Login, Workspace Switcher, Project List)
+- **Status:** Completed
+- **Decisions Made:**
+  - Built rich Next.js frontend with dark glassmorphism, responsive navigation, and accessible UI.
+  - Implemented typed API client (`apps/web/src/lib/api.ts`) with token management.
+  - Implemented `AuthContext` with active workspace state and workspace switcher.
+  - Created interactive modal dialogs for `CreateWorkspaceModal` and `CreateProjectModal`.
+  - Built `ProjectList` with search filtering and role-based action gating (admin/steward only for project creation).
+  - Created all test fixtures specified in Section 8 of `BUILD_PLAN.md` (`fixtures/messy_sales.csv`, `fixtures/survey_results.csv`, `fixtures/inventory.xlsx`).
+  - Validated with `npm run lint` (0 errors), `npm run build` (Turbopack production build passed), Ruff lint (all checks passed), and Pytest (all 3 suites passing).
+
 ---

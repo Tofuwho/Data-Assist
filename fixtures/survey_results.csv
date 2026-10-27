@@ -1,0 +1,11 @@
+Respondent_ID,Submission_Time,Department,Satisfaction_Score,Recommendation,Feedback_Text
+R001,2024-02-01 09:12:00,Engineering,5/5,Yes,"Great tooling and support"
+R002,2024-02-01 10:45:22,eng,9/10,definitely,"fast turnaround"
+R003,2024-02-01 11:30:10,Marketing,Satisfied,Maybe,"Could be faster on reporting"
+R004,2024-02-01 13:15:00,MARKETING,4,yes,"good experience overall"
+R005,2024-02-01 14:02:11,Sales,2/5,No,"hard to navigate, too clunky"
+R006,2024-02-02 08:20:00,sales,4/10,no,"reporting numbers don't match"
+R007,2024-02-02 09:00:00,Customer Support,5,yes,"Excellent customer care"
+R008,2024-02-02 11:10:45,support,Very Satisfied,yes,"love the new dashboard"
+R009,2024-02-02 12:45:00,,3/5,unsure,"Average performance"
+R010,2024-02-02 15:30:12,Finance,10/10,Strongly Recommend,"Saved 10 hours a week on reconciliations"
