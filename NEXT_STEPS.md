@@ -27,7 +27,7 @@ These come from gaps and risks visible in `PROGRESS.md`. Verify each against the
   - Add a settings flag `JOBS_INLINE=true` that runs jobs synchronously in-process (for local dev and tests), and `false` to enqueue to Redis.
   - Put all job entry points behind one function: `enqueue(job_fn, *args)`. Nothing else should import RQ directly.
   - Document how to run the real worker (in Docker/WSL) in the README.
-- [ ] **P.6 — README.** Add a root `README.md`: what the app is, how to run it (both paths), how to run tests, env vars.
+- [x] **P.6 — README.** Add a root `README.md`: what the app is, how to run it (both paths), how to run tests, env vars.
 
 Commit each as `chore: ...` and log them under a "Pre-flight" heading in `PROGRESS.md`.
 

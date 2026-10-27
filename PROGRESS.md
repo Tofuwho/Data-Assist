@@ -109,3 +109,14 @@
   - Added unit test suite in `apps/api/tests/test_jobs.py` covering inline synchronous execution, exception handling, and Redis RQ delegation.
 - **Notes / Observations:**
   - Enables local Windows development and test execution without Redis, while production/Docker deployments seamlessly leverage Redis + RQ.
+
+### Pre-flight P.6 — Comprehensive project README
+- **Status:** Completed
+- **Decisions Made:**
+  - Authored root `README.md` containing product overview, core principles, complete tech stack matrix, and repository layout.
+  - Documented dual execution paths:
+    - Path A: Native no-Docker local dev path for Windows/macOS/Linux (`uvicorn` + Next.js `npm run dev` + `JOBS_INLINE=true`).
+    - Path B: Containerized Docker Compose workflow (`docker compose up --build`).
+  - Documented test execution commands for backend (Ruff, Pytest) and frontend (ESLint, Next.js build), along with an environment variables reference table.
+- **Notes / Observations:**
+  - All pre-flight checklist items (P.1 through P.6) are fully satisfied and verified. Ready to proceed to Phase 1, Task 1.1.
