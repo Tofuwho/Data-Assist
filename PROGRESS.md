@@ -98,3 +98,14 @@
   - Added dedicated test coverage in `test_models.py` verifying JSON column integrity (nested objects, lists, nulls) and cascading foreign key constraints.
 - **Notes / Observations:**
   - All 5 test suites pass cleanly. CI now tests JSON columns and constraints directly against PostgreSQL 16.
+
+### Pre-flight P.5 — Background job abstraction and Windows compatibility
+- **Status:** Completed
+- **Decisions Made:**
+  - Addressed native Windows incompatibility with RQ default worker (`os.fork()` unsupported).
+  - Added `JOBS_INLINE: bool = True` configuration setting to `apps/api/app/config.py` and `.env.example`.
+  - Built unified background worker facade in `apps/api/app/workers/queue.py` providing `enqueue(job_fn, *args, **kwargs)` and `get_job(job_id)`.
+  - Enforced that application routers and services only interface with `enqueue(...)`, preventing direct imports of RQ.
+  - Added unit test suite in `apps/api/tests/test_jobs.py` covering inline synchronous execution, exception handling, and Redis RQ delegation.
+- **Notes / Observations:**
+  - Enables local Windows development and test execution without Redis, while production/Docker deployments seamlessly leverage Redis + RQ.

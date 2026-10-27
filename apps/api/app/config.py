@@ -21,8 +21,9 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "postgresql://cleardata:cleardata_dev_password@localhost:5432/cleardata"
 
-    # Redis
+    # Redis & Background Workers
     REDIS_URL: str = "redis://localhost:6379/0"
+    JOBS_INLINE: bool = True  # Synchronous in-process worker for local dev and tests
 
     # Storage
     STORAGE_BACKEND: str = "local"
