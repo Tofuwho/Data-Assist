@@ -120,3 +120,30 @@
   - Documented test execution commands for backend (Ruff, Pytest) and frontend (ESLint, Next.js build), along with an environment variables reference table.
 - **Notes / Observations:**
   - All pre-flight checklist items (P.1 through P.6) are fully satisfied and verified. Ready to proceed to Phase 1, Task 1.1.
+
+---
+
+## Phase 1 — Ingest and Profiling
+
+### Task 1.1 — File Upload and Parsing
+- **Status:** Completed
+- **Decisions Made:**
+  - Added `status` (`processing | ready | failed`) and `error_message` fields to `Dataset` model, and `position` to `ColumnModel`.
+  - Created Alembic database migration `8d2e5a1b3c4f_add_dataset_status_and_column_position.py` with batch alteration support for SQLite and PostgreSQL.
+  - Implemented `FileStorage` protocol and `LocalFileStorage` (`apps/api/app/services/storage.py`) ensuring uploaded files are stored byte-identically on disk.
+  - Built ingestion engine (`apps/api/app/services/ingest/parser.py`) supporting:
+    - Encoding detection (UTF-8, UTF-8-BOM, fallback with `charset-normalizer`).
+    - Delimiter detection (CSV, TSV, semicolon, pipe).
+    - Header normalization with duplicate deduplication (`_2`, `_3`).
+    - Ragged row handling (padding/trimming).
+    - Multi-sheet Excel workbook parsing with title banner detection and merged header cell forward-filling.
+    - Preserves all values as raw strings (no type coercion during ingest).
+    - Batch insertion of `RowModel` (up to 5,000 rows per batch) and auto-creation of `DatasetVersion` 1 ("Original import").
+  - Created dataset upload endpoint `POST /api/v1/projects/{project_id}/datasets` with `require_project_role` RBAC dependency (admin/steward only), file size validation (max 25 MB), and async job dispatch.
+  - Created job polling endpoint `GET /api/v1/jobs/{job_id}` and dataset query endpoints.
+  - Added dependency `charset-normalizer` for resilient encoding fallback.
+  - Wrote comprehensive test suite in `apps/api/tests/test_ingest.py` covering all three fixtures (`messy_sales.csv`, `survey_results.csv`, `inventory.xlsx`), UTF-8 BOM, semicolon delimiters, duplicate headers, size limits, and RBAC restrictions.
+- **Notes / Observations:**
+  - All 15 tests in test suite pass with 100% green status.
+  - Raw file bytes preserved byte-identically on disk as required by Core Principle 1.
+

@@ -25,9 +25,10 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379/0"
     JOBS_INLINE: bool = True  # Synchronous in-process worker for local dev and tests
 
-    # Storage
+    # Storage & Uploads
     STORAGE_BACKEND: str = "local"
     LOCAL_STORAGE_PATH: str = "./storage"
+    MAX_UPLOAD_SIZE_MB: int = 25
 
     # AI Integration
     LLM_PROVIDER: str = "mock"

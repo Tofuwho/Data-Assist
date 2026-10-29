@@ -101,6 +101,8 @@ class Dataset(Base):
     name = Column(String(255), nullable=False)
     source_type = Column(String(50), nullable=False)  # csv | xlsx
     raw_file_path = Column(String(500), nullable=False)
+    status = Column(String(50), default="processing", nullable=False)  # processing | ready | failed
+    error_message = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), default=get_utc_now, nullable=False)
     updated_at = Column(DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now, nullable=False)
 
@@ -140,6 +142,7 @@ class ColumnModel(Base):
     id = Column(String(36), primary_key=True, default=generate_uuid)
     dataset_id = Column(String(36), ForeignKey("datasets.id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(String(255), nullable=False)
+    position = Column(Integer, default=0, nullable=False)
     inferred_type = Column(String(50), nullable=True)  # string | integer | float | date | boolean
     semantic_hint = Column(String(100), nullable=True)  # currency, state, email, etc.
     stats_json = Column(JSON, nullable=True)

@@ -98,7 +98,7 @@ Create with Alembic migrations.
 **Done when:** `docker compose up` runs everything, a user can sign up, create a workspace and a project, and CI is green.
 
 ### Phase 1 — Ingest and profiling (MVP core)
-- [ ] **1.1** File upload endpoint (CSV, XLSX). Store raw file untouched. Parse into `rows.raw_json` and `columns`. Handle encodings, delimiters, header detection, multiple Excel sheets.
+- [x] **1.1** File upload endpoint (CSV, XLSX). Store raw file untouched. Parse into `rows.raw_json` and `columns`. Handle encodings, delimiters, header detection, multiple Excel sheets.
 - [ ] **1.2** Profiling job (async worker): per column compute inferred type, null %, distinct count, top values, min/max, format patterns (e.g., date formats mixed), and write `stats_json`.
 - [ ] **1.3** Issue detection (deterministic): missing values, exact and near duplicates, mixed formats in one column, outliers, inconsistent casing/whitespace, values that violate inferred type.
 - [ ] **1.4** Frontend: dataset page with virtualized grid, column profile sidebar, issues list with counts and severity.

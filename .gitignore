@@ -42,6 +42,7 @@ __pycache__/
 
 # Uploads / Local File Storage
 uploads/
+storage/
 apps/api/storage/
 *.sqlite
 *.db
