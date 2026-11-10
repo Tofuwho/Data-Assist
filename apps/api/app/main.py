@@ -1,3 +1,6 @@
+import logging
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -6,6 +9,17 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.config import settings
 from app.routers import auth, datasets, jobs, reports, workspaces
+from app.services.seed import ensure_local_sqlite_schema, seed_dev_demo_accounts
+
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    ensure_local_sqlite_schema()
+    seed_dev_demo_accounts()
+    yield
+
 
 app = FastAPI(
     title="ClearData API",
@@ -13,6 +27,7 @@ app = FastAPI(
     version="0.1.0",
     docs_url="/api/v1/docs",
     openapi_url="/api/v1/openapi.json",
+    lifespan=lifespan,
 )
 
 # Configure CORS
@@ -55,6 +70,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):
+    logger.exception("Unhandled error during %s %s", request.method, request.url.path)
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={

@@ -265,3 +265,14 @@
   2. Review the **Executive Briefing** banner (with **Backend-Verified Narrative** citation count), KPI totals (showing both contributing rows and excluded unparseable records), time trends, segment breakdowns, and honest **Data Quality & Methodology Caveats**.
   3. Click any KPI figure, chart bar, donut slice, or table row to open the **Source Row Lineage** drawer and inspect exact source `RowModel` rows, excluded records, and versioned changes.
   4. Use **Add Block** / edit controls to customize metrics, toggle **Presentation View** for clean executive review, and click **Export XLSX** or **Print / PDF** to distribute to company stakeholders.
+
+### Fix — Local SQLite Default, Startup Schema/Demo Seeding & Auth UX
+- **Status:** Completed
+- **Root Cause Fixed:**
+  - `apps/api/app/config.py` previously defaulted `DATABASE_URL` to `postgresql://cleardata:...@localhost:5432/cleardata` (and only looked for `.env` in CWD), causing `/auth/login` and `/auth/register` to fail with `500 INTERNAL_SERVER_ERROR` on native local hosts without a configured ClearData PostgreSQL database (even when another Postgres instance occupied port `5432`).
+  - `AuthCard` (`apps/web/src/components/AuthCard.tsx`) defaulted to Sign In with Quickfill Admin/Steward buttons, while fresh local databases had neither tables nor seeded demo accounts.
+- **Decisions Made:**
+  - Updated `apps/api/app/config.py` and `.env.example` so unconfigured local runs default to `apps/api/cleardata.db` (SQLite) while preserving `.env` / environment overrides for Docker Compose and CI PostgreSQL; added root + `apps/api` `.env` resolution.
+  - Enabled SQLite `PRAGMA foreign_keys=ON` in `apps/api/app/models/database.py` and added `apps/api/app/services/seed.py` wired into FastAPI `lifespan` (`apps/api/app/main.py`) to idempotently bootstrap SQLite schema via Alembic and seed `admin@cleardata.io` / `steward@cleardata.io` (password `Password123!`) when the `users` table is empty in `development` mode (skipped in tests).
+  - Updated `apps/web/src/components/AuthCard.tsx` (Quickfill switches to Sign In mode cleanly and relaxes client `minLength` on login) and added friendly API-unreachable messaging in `apps/web/src/lib/api.ts`.
+  - Added tests in `apps/api/tests/test_startup_seed.py`; verified with Ruff (`0` errors), Pytest (`39/39` passed), ESLint (`0` errors), `tsc --noEmit` (`0` errors), and live `http://localhost:8000` `/auth/login` + `/auth/me` probes.

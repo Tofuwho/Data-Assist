@@ -1,4 +1,10 @@
+from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+API_DIR = Path(__file__).resolve().parent.parent
+ROOT_DIR = API_DIR.parent.parent
+DEFAULT_SQLITE_URL = f"sqlite:///{(API_DIR / 'cleardata.db').as_posix()}"
 
 
 class Settings(BaseSettings):
@@ -18,8 +24,8 @@ class Settings(BaseSettings):
     API_PORT: int = 8000
     ALLOWED_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000"
 
-    # Database
-    DATABASE_URL: str = "postgresql://cleardata:cleardata_dev_password@localhost:5432/cleardata"
+    # Database (defaults to local SQLite; override via DATABASE_URL for PostgreSQL)
+    DATABASE_URL: str = DEFAULT_SQLITE_URL
 
     # Redis & Background Workers
     REDIS_URL: str = "redis://localhost:6379/0"
@@ -42,7 +48,7 @@ class Settings(BaseSettings):
         return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",") if origin.strip()]
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(str(ROOT_DIR / ".env"), str(API_DIR / ".env"), ".env"),
         env_file_encoding="utf-8",
         extra="ignore",
     )

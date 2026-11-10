@@ -37,6 +37,8 @@ export function AuthCard() {
   };
 
   const fillDemo = (role: "admin" | "steward") => {
+    setMode("login");
+    setError(null);
     if (role === "admin") {
       setEmail("admin@cleardata.io");
       setPassword("Password123!");
@@ -145,7 +147,7 @@ export function AuthCard() {
             <input
               type="password"
               required
-              minLength={8}
+              minLength={mode === "register" ? 8 : undefined}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
@@ -191,7 +193,7 @@ export function AuthCard() {
       {/* Quick Demo Pre-fill helper */}
       <div className="mt-6 border-t border-zinc-800/80 pt-5">
         <p className="text-center text-[11px] font-medium text-zinc-500 mb-2.5">
-          Need quick test credentials?
+          Demo credentials (auto-seeded in local dev):
         </p>
         <div className="flex justify-center space-x-2">
           <button

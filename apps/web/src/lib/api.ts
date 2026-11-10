@@ -450,7 +450,14 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     ...((options.headers as Record<string, string> | undefined) || {}),
   };
 
-  const res = await fetch(url, { ...options, headers });
+  let res: Response;
+  try {
+    res = await fetch(url, { ...options, headers });
+  } catch {
+    throw new Error(
+      `Unable to reach ClearData API at ${API_BASE}. Make sure the backend server is running.`
+    );
+  }
   if (res.status === 204) {
     return undefined as T;
   }
