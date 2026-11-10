@@ -5,7 +5,7 @@ from fastapi import Depends, Header, HTTPException, Path, status
 from sqlalchemy.orm import Session
 
 from app.models.database import get_db
-from app.models.entities import Dataset, Issue, Membership, Project, User
+from app.models.entities import Dataset, Issue, Membership, Project, Report, User
 from app.services.auth import decode_access_token
 
 
@@ -177,3 +177,51 @@ def require_dataset_role(allowed_roles: list[str]) -> Callable:
         return dataset, project, membership
 
     return dataset_role_checker
+
+
+def require_report_role(allowed_roles: list[str]) -> Callable:
+    """Dependency checking that current user has one of allowed roles in the workspace of the report."""
+
+    async def report_role_checker(
+        report_id: Annotated[str, Path(description="Report ID")],
+        current_user: Annotated[User, Depends(get_current_user)],
+        db: Annotated[Session, Depends(get_db)],
+    ) -> tuple[Report, Project, Membership]:
+        report = db.query(Report).filter(Report.id == report_id).first()
+        if not report:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Report {report_id} not found",
+            )
+
+        project = db.query(Project).filter(Project.id == report.project_id).first()
+        if not project:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Project for report {report_id} not found",
+            )
+
+        membership = (
+            db.query(Membership)
+            .filter(
+                Membership.workspace_id == project.workspace_id,
+                Membership.user_id == current_user.id,
+            )
+            .first()
+        )
+
+        if not membership:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You are not a member of this report's workspace",
+            )
+
+        if membership.role not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Operation requires one of roles: {', '.join(allowed_roles)}. Your role is '{membership.role}'",
+            )
+
+        return report, project, membership
+
+    return report_role_checker
