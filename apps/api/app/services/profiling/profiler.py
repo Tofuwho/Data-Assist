@@ -651,16 +651,23 @@ def profile_dataset(dataset_id: str) -> dict[str, Any]:
             completeness_pct,
             duration_ms,
         )
-        return {
-            "dataset_id": dataset_id,
-            "row_count": row_count,
-            "column_count": column_count,
-            "completeness_pct": completeness_pct,
-            "profile_duration_ms": duration_ms,
-        }
     except Exception as exc:
         db.rollback()
         logger.error("Profiling failed for dataset %s: %s", dataset_id, exc, exc_info=True)
         raise
     finally:
         db.close()
+
+    from app.services.profiling.detectors import detect_dataset_issues
+    from app.workers import enqueue
+
+    issue_job = enqueue(detect_dataset_issues, dataset_id=dataset_id)
+
+    return {
+        "dataset_id": dataset_id,
+        "row_count": row_count,
+        "column_count": column_count,
+        "completeness_pct": completeness_pct,
+        "profile_duration_ms": duration_ms,
+        "issue_detection_job_id": issue_job.id,
+    }

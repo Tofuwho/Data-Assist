@@ -17,6 +17,7 @@ python-dotenv>=1.0.1
 redis>=5.0.0
 rq>=1.16.0
 charset-normalizer>=3.3.0
+rapidfuzz>=3.9.0
 
 # Testing & Linting
 pytest>=8.0.0

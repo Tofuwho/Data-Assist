@@ -1,18 +1,20 @@
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from sqlalchemy import case
 from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.models.database import get_db
-from app.models.entities import ColumnModel, Dataset, Membership, Project
+from app.models.entities import ColumnModel, Dataset, Issue, Membership, Project
 from app.routers.deps import require_dataset_role, require_project_role
 from app.schemas.dataset import (
     ColumnResponse,
     DatasetItemSummary,
     DatasetResponse,
     DatasetUploadResponse,
+    IssueResponse,
     JobStatusResponse,
 )
 from app.services.ingest import inspect_xlsx_sheets, parse_and_persist_dataset
@@ -227,3 +229,39 @@ def trigger_dataset_profile(
         result=job.result,
         error=job.error,
     )
+
+
+@router.get("/datasets/{dataset_id}/issues", response_model=list[IssueResponse])
+def get_dataset_issues(
+    dataset_id: str,
+    dataset_ctx: Annotated[
+        tuple[Dataset, Project, Membership],
+        Depends(require_dataset_role(["admin", "steward", "stakeholder", "contributor"])),
+    ],
+    db: Annotated[Session, Depends(get_db)],
+    severity: Annotated[str | None, Query()] = None,
+    type: Annotated[str | None, Query()] = None,
+    column_id: Annotated[str | None, Query()] = None,
+    status_filter: Annotated[str | None, Query(alias="status")] = None,
+):
+    """Retrieve detected and human-created issues for a dataset with optional filters."""
+    dataset, _, _ = dataset_ctx
+    query = db.query(Issue).filter(Issue.dataset_id == dataset.id)
+
+    if severity:
+        query = query.filter(Issue.severity == severity)
+    if type:
+        query = query.filter(Issue.type == type)
+    if column_id:
+        query = query.filter(Issue.column_id == column_id)
+    if status_filter:
+        query = query.filter(Issue.status == status_filter)
+
+    severity_order = case(
+        (Issue.severity == "critical", 0),
+        (Issue.severity == "high", 1),
+        (Issue.severity == "medium", 2),
+        (Issue.severity == "low", 3),
+        else_=4,
+    )
+    return query.order_by(severity_order, Issue.created_at.asc()).all()

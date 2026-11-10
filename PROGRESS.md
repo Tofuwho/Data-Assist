@@ -161,3 +161,23 @@
   - Added comprehensive tests in `apps/api/tests/test_profiling.py` covering all three fixtures plus edge cases (22/22 backend tests passing, Ruff passing).
 - **Notes / Observations:**
   - Dataset profiling also persists dataset-level completeness % (`completeness_pct`), row/column counts, and profiling timing in `datasets.stats_json`.
+
+### Task 1.3 — Deterministic Issue Detection
+- **Status:** Completed
+- **Decisions Made:**
+  - Added `rapidfuzz>=3.9.0` to `apps/api/requirements.txt` for fast deterministic fuzzy string matching in `near_duplicates` and `label_variants` detectors.
+  - Added `affected_count`, `details_json`, and `source` (`auto` | `human`) columns to `Issue` model (`apps/api/app/models/entities.py`) and created Alembic migration `c4d5e6f7a8b9_add_issue_details_and_affected_count.py`.
+  - Implemented 8 modular detectors under `apps/api/app/services/profiling/detectors/`:
+    - `missing_values.py` (high >20%, medium 5–20%, low <5%)
+    - `duplicate_rows.py` (exact duplicate rows)
+    - `near_duplicates.py` (entity name clustering + row-level near-duplicates excluding identifier columns)
+    - `mixed_formats.py` (mixed date/currency/scale formats and ambiguous dates)
+    - `inconsistent_text.py` (leading/trailing whitespace and casing conflicts)
+    - `type_violation.py` (values violating dominant inferred type)
+    - `outliers.py` (IQR 1.5x bounds; flag-only)
+    - `label_variants.py` (normalized/abbreviation/acronym/fuzzy clustering of categorical labels)
+  - Built `detect_dataset_issues` runner chaining from `profile_dataset`, capping stored `row_ids` at 1,000 while recording full `affected_count`, and preserving human-created or resolved/dismissed/in-review issues on re-run.
+  - Added `GET /api/v1/datasets/{dataset_id}/issues` endpoint with `severity`, `type`, `column_id`, and `status` query filters.
+  - Added comprehensive detector tests in `apps/api/tests/test_detectors.py` including a zero-issue clean dataset test (27/27 tests passing, Ruff passing).
+- **Notes / Observations:**
+  - Keeping `label_variants` focused on categorical dimensions and `near_duplicates` focused on customer/entity columns and non-ID row similarity keeps the detected issues actionable and non-noisy across all fixtures.

@@ -45,6 +45,24 @@ class ColumnResponse(BaseModel):
     created_at: datetime
 
 
+class IssueResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    dataset_id: str
+    type: str
+    severity: str
+    column_id: str | None = None
+    row_ids: list[str] | None = None
+    affected_count: int = 0
+    status: str
+    source: str = "auto"
+    assignee_id: str | None = None
+    description: str
+    details_json: dict[str, Any] | None = None
+    created_at: datetime
+
+
 class JobStatusResponse(BaseModel):
     job_id: str
     status: str

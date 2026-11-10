@@ -247,6 +247,9 @@ class Issue(Base):
     status = Column(String(20), default="open", nullable=False)  # open | in_review | resolved | dismissed
     assignee_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     description = Column(Text, nullable=False)
+    affected_count = Column(Integer, default=0, nullable=False)
+    details_json = Column(JSON, nullable=True)
+    source = Column(String(20), default="auto", nullable=False)  # auto | human
     created_at = Column(DateTime(timezone=True), default=get_utc_now, nullable=False)
 
     # Relationships
