@@ -118,10 +118,10 @@ Create with Alembic migrations.
 **Done when:** a messy fixture can be taken from raw to clean using suggestions and manual fixes, every change appears in history with its source, and any change can be reverted.
 
 ### Phase 3 — Reporting
-- [ ] **3.1** Report builder: choose a dataset version, add blocks (KPI card, bar/line/pie chart, table, text). Aggregations computed server-side from `cell_values`.
-- [ ] **3.2** Click-through lineage: clicking a chart value or KPI shows the underlying rows and the changes applied to them.
-- [ ] **3.3** AI-written summary block (see section 6) that only cites numbers computed by the backend.
-- [ ] **3.4** Report templates (monthly sales, survey results, inventory). Start with two.
+- [x] **3.1** Report builder: choose a dataset version, add blocks (KPI card, bar/line/pie chart, table, text). Aggregations computed server-side from `cell_values`.
+- [x] **3.2** Click-through lineage: clicking a chart value or KPI shows the underlying rows and the changes applied to them.
+- [x] **3.3** AI-written summary block (see section 6) that only cites numbers computed by the backend.
+- [x] **3.4** Report templates (monthly sales, survey results, inventory). Start with two.
 - [ ] **3.5** Export: PDF and XLSX. Shareable read-only link with expiry.
 
 **Done when:** a cleaned dataset yields a report with charts, a generated summary whose numbers match the data, working lineage, and a PDF export.

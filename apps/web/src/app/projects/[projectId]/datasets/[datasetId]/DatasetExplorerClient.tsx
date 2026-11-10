@@ -72,6 +72,7 @@ export function DatasetExplorerClient() {
   const [selectedColumnId, setSelectedColumnId] = useState<string | null>(null);
   const [createWsOpen, setCreateWsOpen] = useState(false);
   const [reprofiling, setReprofiling] = useState(false);
+  const [generatingReport, setGeneratingReport] = useState(false);
   const [reloadNonce, setReloadNonce] = useState(0);
 
   // Debounce search filter
@@ -253,6 +254,24 @@ export function DatasetExplorerClient() {
     }
   };
 
+  const handleGenerateReport = async () => {
+    if (!datasetId || generatingReport) return;
+    setGeneratingReport(true);
+    setMetaError(null);
+    try {
+      const report = await api.analyzeDatasetToReport(datasetId, {
+        template: "auto",
+        include_narrative: true,
+      });
+      router.push(`/projects/${projectId}/reports/${report.id}`);
+    } catch (err: unknown) {
+      setMetaError(
+        err instanceof Error ? err.message : "Failed to generate stakeholder report"
+      );
+      setGeneratingReport(false);
+    }
+  };
+
   if (authLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-zinc-950">
@@ -319,6 +338,22 @@ export function DatasetExplorerClient() {
 
             {/* Right Actions */}
             <div className="flex flex-wrap items-center gap-2">
+              {canManage && dataset?.status === "ready" && (
+                <button
+                  type="button"
+                  onClick={handleGenerateReport}
+                  disabled={generatingReport || metaLoading}
+                  className="inline-flex items-center space-x-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-md shadow-indigo-600/20 hover:opacity-95 transition-opacity disabled:opacity-50"
+                >
+                  {generatingReport ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-3.5 w-3.5" />
+                  )}
+                  <span>{generatingReport ? "Analyzing..." : "Generate Stakeholder Report"}</span>
+                </button>
+              )}
+
               {canManage && (
                 <button
                   type="button"

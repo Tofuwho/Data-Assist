@@ -198,6 +198,243 @@ export interface IssueQueryParams {
   status?: string;
 }
 
+export type ReportTemplate =
+  | "auto"
+  | "executive_sales"
+  | "survey_insights"
+  | "inventory_summary"
+  | "general_summary";
+
+export type ReportStatus = "draft" | "in_review" | "approved" | "published";
+
+export type BlockType =
+  | "narrative"
+  | "kpi"
+  | "bar_chart"
+  | "line_chart"
+  | "area_chart"
+  | "pie_chart"
+  | "summary_table"
+  | "data_quality";
+
+export type BlockWidth = "third" | "half" | "full";
+
+export interface ReportBlockConfig {
+  metric_column?: string | null;
+  secondary_metric_column?: string | null;
+  dimension_column?: string | null;
+  x_column?: string | null;
+  y_column?: string | null;
+  aggregation?: string;
+  format_style?: string;
+  granularity?: string;
+  limit?: number;
+  sort_by?: string;
+  filter_column?: string | null;
+  filter_value?: string | null;
+  show_resolved?: boolean;
+}
+
+export interface NarrativeVerification {
+  verified: boolean;
+  total_numbers_checked: number;
+  unverified_numbers: string[];
+  checked_at: string;
+}
+
+export interface NarrativeContent {
+  headline: string;
+  executive_summary: string;
+  key_findings: string[];
+  recommendations: string[];
+  caveats: string[];
+  provider?: string;
+  model?: string;
+  generated_at?: string;
+  verification?: NarrativeVerification;
+}
+
+export interface ReportBlockDefinition {
+  id: string;
+  type: BlockType | string;
+  title: string;
+  subtitle?: string | null;
+  width: BlockWidth | string;
+  config: ReportBlockConfig;
+  content?: NarrativeContent | null;
+}
+
+export interface ReportLayout {
+  version: number;
+  template: string;
+  blocks: ReportBlockDefinition[];
+}
+
+export interface AnalysisOverview {
+  row_count: number;
+  column_count: number;
+  null_cells: number;
+  completeness_pct: number;
+  open_issues_count: number;
+  high_critical_issues_count: number;
+  resolved_issues_count: number;
+  readiness: "verified" | "needs_review" | "caution" | string;
+  readiness_score: number;
+}
+
+export interface AnalysisMeasure {
+  column: string;
+  inferred_type: string | null;
+  semantic_hint: string | null;
+  format_style: string;
+  valid_count: number;
+  missing_count: number;
+  unparseable_count: number;
+  currency_notations?: string[];
+  is_primary: boolean;
+  sum: number;
+  mean: number;
+  median: number;
+  min: number;
+  max: number;
+  q1: number;
+  q3: number;
+  iqr: number;
+}
+
+export interface AnalysisDimension {
+  column: string;
+  inferred_type: string | null;
+  semantic_hint: string | null;
+  distinct_count: number;
+  non_null_count: number;
+  missing_count: number;
+  top_values: Array<{ value: string; count: number; share_pct: number }>;
+}
+
+export interface DataQualityCaveat {
+  id: string;
+  severity: "critical" | "high" | "medium" | "low" | string;
+  category: string;
+  column: string | null;
+  title: string;
+  message: string;
+  affected_count: number;
+}
+
+export interface AnalysisColumnOption {
+  name: string;
+  inferred_type: string | null;
+  semantic_hint: string | null;
+}
+
+export interface DatasetAnalysis {
+  dataset_id: string;
+  dataset_name: string;
+  version_id: string;
+  version_number: number;
+  generated_at: string;
+  overview: AnalysisOverview;
+  measures: AnalysisMeasure[];
+  primary_measure: AnalysisMeasure | null;
+  dimensions: AnalysisDimension[];
+  segment_breakdowns: Array<Record<string, unknown>>;
+  time_series: Record<string, unknown> | null;
+  correlations: Array<{
+    column_a: string;
+    column_b: string;
+    pearson_r: number;
+    paired_rows: number;
+    strength: string;
+    direction: string;
+  }>;
+  data_quality_caveats: DataQualityCaveat[];
+  columns: AnalysisColumnOption[];
+}
+
+export interface ComputedBlock {
+  id: string;
+  type: BlockType | string;
+  title: string;
+  subtitle?: string | null;
+  width: BlockWidth | string;
+  config: ReportBlockConfig;
+  data: Record<string, unknown> | NarrativeContent | null;
+}
+
+export interface ReportListItem {
+  id: string;
+  project_id: string;
+  dataset_id: string;
+  dataset_name: string;
+  dataset_version_id: string;
+  version_number: number;
+  title: string;
+  status: ReportStatus | string;
+  template: string;
+  block_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReportDetail {
+  id: string;
+  project_id: string;
+  dataset_id: string;
+  dataset_name: string;
+  dataset_version_id: string;
+  version_number: number;
+  title: string;
+  status: ReportStatus | string;
+  template: string;
+  layout_json: ReportLayout;
+  computed_blocks: ComputedBlock[];
+  analysis: DatasetAnalysis;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RowChangeAuditItem {
+  id: string;
+  column_name: string;
+  before: string | null;
+  after: string | null;
+  source: string;
+  reason: string | null;
+  status: string;
+  created_at: string | null;
+}
+
+export interface LineageRowItem {
+  row_id: string;
+  row_index: number;
+  raw_values: Record<string, unknown>;
+  effective_values: Record<string, unknown>;
+  changed_columns: string[];
+  changes: RowChangeAuditItem[];
+}
+
+export interface BlockLineageResponse {
+  block_id: string;
+  block_type: string;
+  block_title: string;
+  bucket_key: string | null;
+  bucket_label: string | null;
+  dataset_id: string;
+  dataset_name: string;
+  version_id: string;
+  version_number: number;
+  highlight_columns: string[];
+  columns: string[];
+  total_matching_rows: number;
+  excluded_row_count: number;
+  excluded_reasons: Record<string, number>;
+  limit: number;
+  offset: number;
+  has_more: boolean;
+  rows: LineageRowItem[];
+}
+
 function getAuthHeader(): Record<string, string> {
   if (typeof window === "undefined") return {};
   const token = localStorage.getItem("cleardata_token");
@@ -399,5 +636,128 @@ export const api = {
     return request<JobStatus>(`/datasets/${datasetId}/profile`, {
       method: "POST",
     });
+  },
+
+  // Stakeholder Analysis & Reports
+  async getDatasetAnalysis(datasetId: string, versionId?: string): Promise<DatasetAnalysis> {
+    const query = versionId ? `?version_id=${encodeURIComponent(versionId)}` : "";
+    return request<DatasetAnalysis>(`/datasets/${datasetId}/analysis${query}`);
+  },
+
+  async analyzeDatasetToReport(
+    datasetId: string,
+    payload: {
+      version_id?: string;
+      template?: ReportTemplate;
+      title?: string;
+      include_narrative?: boolean;
+      llm_provider?: string;
+    } = {}
+  ): Promise<ReportDetail> {
+    return request<ReportDetail>(`/datasets/${datasetId}/analyze`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async listProjectReports(projectId: string): Promise<ReportListItem[]> {
+    return request<ReportListItem[]>(`/projects/${projectId}/reports`);
+  },
+
+  async createReport(
+    projectId: string,
+    payload: {
+      dataset_id: string;
+      dataset_version_id?: string;
+      title?: string;
+      template?: ReportTemplate;
+      layout_json?: ReportLayout;
+      include_narrative?: boolean;
+    }
+  ): Promise<ReportDetail> {
+    return request<ReportDetail>(`/projects/${projectId}/reports`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async getReport(reportId: string): Promise<ReportDetail> {
+    return request<ReportDetail>(`/reports/${reportId}`);
+  },
+
+  async updateReport(
+    reportId: string,
+    payload: {
+      title?: string;
+      status?: ReportStatus;
+      layout_json?: ReportLayout;
+    }
+  ): Promise<ReportDetail> {
+    return request<ReportDetail>(`/reports/${reportId}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async deleteReport(reportId: string): Promise<void> {
+    return request<void>(`/reports/${reportId}`, {
+      method: "DELETE",
+    });
+  },
+
+  async computeReport(reportId: string): Promise<ReportDetail> {
+    return request<ReportDetail>(`/reports/${reportId}/compute`, {
+      method: "POST",
+    });
+  },
+
+  async generateReportNarrative(
+    reportId: string,
+    payload: { block_id?: string; llm_provider?: string } = {}
+  ): Promise<ReportDetail> {
+    return request<ReportDetail>(`/reports/${reportId}/narrative`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async getBlockLineage(
+    reportId: string,
+    blockId: string,
+    params: { bucket_key?: string; limit?: number; offset?: number } = {}
+  ): Promise<BlockLineageResponse> {
+    const qs = new URLSearchParams();
+    if (params.bucket_key !== undefined && params.bucket_key !== null) {
+      qs.set("bucket_key", params.bucket_key);
+    }
+    if (params.limit !== undefined) qs.set("limit", String(params.limit));
+    if (params.offset !== undefined) qs.set("offset", String(params.offset));
+    const query = qs.toString();
+    return request<BlockLineageResponse>(
+      `/reports/${reportId}/blocks/${blockId}/lineage${query ? `?${query}` : ""}`
+    );
+  },
+
+  async exportReportWorkbook(reportId: string, fallbackTitle = "stakeholder_report"): Promise<void> {
+    const res = await fetch(`${API_BASE}/reports/${reportId}/export?format=xlsx`, {
+      headers: { ...getAuthHeader() },
+    });
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => null);
+      throw new Error(errJson?.error?.message || `Export failed with status ${res.status}`);
+    }
+    const blob = await res.blob();
+    const disposition = res.headers.get("content-disposition") || "";
+    const match = disposition.match(/filename="?([^"]+)"?/i);
+    const filename = match?.[1] || `${fallbackTitle.replace(/[^a-z0-9._-]+/gi, "_")}.xlsx`;
+
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
   },
 };

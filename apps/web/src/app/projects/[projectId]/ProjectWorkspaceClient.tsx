@@ -4,14 +4,16 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { api, Dataset, Project } from "@/lib/api";
+import { api, Dataset, Project, ReportListItem } from "@/lib/api";
 import { Header } from "@/components/Header";
 import { AuthCard } from "@/components/AuthCard";
 import { CreateWorkspaceModal } from "@/components/CreateWorkspaceModal";
 import { UploadDatasetModal } from "@/components/UploadDatasetModal";
+import { GenerateReportModal } from "@/components/GenerateReportModal";
 import {
   AlertCircle,
   ArrowLeft,
+  BarChart3,
   CheckCircle2,
   ChevronRight,
   Database,
@@ -21,6 +23,7 @@ import {
   RefreshCw,
   Search,
   Sparkles,
+  Trash2,
   UploadCloud,
 } from "lucide-react";
 
@@ -47,11 +50,17 @@ export function ProjectWorkspaceClient() {
 
   const [project, setProject] = useState<Project | null>(null);
   const [datasets, setDatasets] = useState<Dataset[]>([]);
+  const [reports, setReports] = useState<ReportListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [createWsOpen, setCreateWsOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [generateReportTarget, setGenerateReportTarget] = useState<{
+    open: boolean;
+    datasetId?: string;
+  }>({ open: false });
+  const [deletingReportId, setDeletingReportId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadData = useCallback(async (silent = false) => {
@@ -62,12 +71,14 @@ export function ProjectWorkspaceClient() {
       setRefreshing(true);
     }
     try {
-      const [proj, dsList] = await Promise.all([
+      const [proj, dsList, repList] = await Promise.all([
         api.getProject(projectId),
         api.listDatasets(projectId),
+        api.listProjectReports(projectId).catch(() => [] as ReportListItem[]),
       ]);
       setProject(proj);
       setDatasets(dsList);
+      setReports(repList);
       setError(null);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to load project datasets");
@@ -83,13 +94,15 @@ export function ProjectWorkspaceClient() {
 
     async function initLoad() {
       try {
-        const [proj, dsList] = await Promise.all([
+        const [proj, dsList, repList] = await Promise.all([
           api.getProject(projectId),
           api.listDatasets(projectId),
+          api.listProjectReports(projectId).catch(() => [] as ReportListItem[]),
         ]);
         if (!cancelled) {
           setProject(proj);
           setDatasets(dsList);
+          setReports(repList);
           setError(null);
         }
       } catch (err: unknown) {
@@ -134,6 +147,20 @@ export function ProjectWorkspaceClient() {
 
   const canUpload =
     projectWorkspace?.role === "admin" || projectWorkspace?.role === "steward";
+  const isContributor = projectWorkspace?.role === "contributor";
+
+  const handleDeleteReport = async (reportId: string) => {
+    if (deletingReportId) return;
+    setDeletingReportId(reportId);
+    try {
+      await api.deleteReport(reportId);
+      setReports((prev) => prev.filter((r) => r.id !== reportId));
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to delete report");
+    } finally {
+      setDeletingReportId(null);
+    }
+  };
 
   const filteredDatasets = useMemo(() => {
     const needle = search.trim().toLowerCase();
@@ -252,6 +279,17 @@ export function ProjectWorkspaceClient() {
                 <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin text-indigo-400" : ""}`} />
                 <span>Refresh</span>
               </button>
+
+              {canUpload && summary.readyCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setGenerateReportTarget({ open: true })}
+                  className="inline-flex items-center space-x-2 rounded-xl border border-indigo-500/40 bg-indigo-500/15 px-3.5 py-2.5 text-xs font-semibold text-indigo-200 transition-colors hover:bg-indigo-500/25"
+                >
+                  <BarChart3 className="h-4 w-4 text-indigo-300" />
+                  <span>New Report</span>
+                </button>
+              )}
 
               <button
                 type="button"
@@ -486,13 +524,27 @@ export function ProjectWorkspaceClient() {
                         </div>
 
                         {ds.status === "ready" ? (
-                          <Link
-                            href={`/projects/${projectId}/datasets/${ds.id}`}
-                            className="inline-flex items-center space-x-1.5 rounded-xl bg-zinc-800 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-indigo-600"
-                          >
-                            <span>Explore Dataset</span>
-                            <ChevronRight className="h-3.5 w-3.5" />
-                          </Link>
+                          <div className="flex items-center gap-2">
+                            {canUpload && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setGenerateReportTarget({ open: true, datasetId: ds.id })
+                                }
+                                className="inline-flex items-center space-x-1.5 rounded-xl border border-indigo-500/35 bg-indigo-500/15 px-3 py-2 text-xs font-semibold text-indigo-200 transition-colors hover:bg-indigo-500/25"
+                              >
+                                <BarChart3 className="h-3.5 w-3.5" />
+                                <span>Analyze</span>
+                              </button>
+                            )}
+                            <Link
+                              href={`/projects/${projectId}/datasets/${ds.id}`}
+                              className="inline-flex items-center space-x-1.5 rounded-xl bg-zinc-800 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-indigo-600"
+                            >
+                              <span>Explore Dataset</span>
+                              <ChevronRight className="h-3.5 w-3.5" />
+                            </Link>
+                          </div>
                         ) : (
                           <span className="inline-flex cursor-not-allowed items-center space-x-1.5 rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-2 text-xs font-semibold text-zinc-500">
                             <span>{ds.status === "processing" ? "Processing..." : "Unavailable"}</span>
@@ -506,6 +558,102 @@ export function ProjectWorkspaceClient() {
             </div>
           )}
         </section>
+
+        {/* Stakeholder Reports Section */}
+        {!loading && !isContributor && (
+          <section className="space-y-4 pt-2">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center space-x-2.5">
+                <h2 className="text-lg font-bold tracking-tight text-white">
+                  Stakeholder Reports
+                </h2>
+                <span className="rounded-full border border-zinc-700/60 bg-zinc-800 px-2.5 py-0.5 text-xs font-semibold text-zinc-300">
+                  {reports.length}
+                </span>
+              </div>
+
+              {canUpload && summary.readyCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setGenerateReportTarget({ open: true })}
+                  className="inline-flex items-center space-x-1.5 rounded-xl bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white shadow-lg shadow-indigo-600/20 hover:bg-indigo-500 transition-colors"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  <span>Generate Stakeholder Report</span>
+                </button>
+              )}
+            </div>
+
+            {reports.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/20 p-8 text-center">
+                <p className="text-sm font-semibold text-zinc-300">
+                  No stakeholder reports generated yet
+                </p>
+                <p className="mt-1 text-xs text-zinc-500">
+                  Turn any ready dataset into KPI cards, interactive charts, executive narrative, and traceable row lineage.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
+                {reports.map((rep) => (
+                  <div
+                    key={rep.id}
+                    className="flex flex-col justify-between rounded-2xl border border-zinc-800/80 bg-zinc-900/50 p-5 transition-all hover:border-zinc-700 hover:bg-zinc-900/90"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="rounded-full border border-indigo-500/30 bg-indigo-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-indigo-300">
+                            {rep.status.replaceAll("_", " ")}
+                          </span>
+                          <span className="rounded border border-zinc-700/70 bg-zinc-800 px-1.5 py-0.5 text-[10px] font-mono text-zinc-300">
+                            {rep.dataset_name} · v{rep.version_number}
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-zinc-500 capitalize">
+                          {rep.template.replaceAll("_", " ")}
+                        </span>
+                      </div>
+
+                      <h3 className="text-base font-bold text-white">{rep.title}</h3>
+                      <p className="text-xs text-zinc-400">
+                        {rep.block_count} report block(s) · Updated{" "}
+                        {new Date(rep.updated_at).toLocaleString()}
+                      </p>
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-between border-t border-zinc-800/80 pt-3">
+                      <Link
+                        href={`/projects/${projectId}/reports/${rep.id}`}
+                        className="inline-flex items-center space-x-1.5 rounded-xl bg-zinc-800 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-indigo-600 transition-colors"
+                      >
+                        <BarChart3 className="h-3.5 w-3.5" />
+                        <span>Open Report</span>
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      </Link>
+
+                      {canUpload && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteReport(rep.id)}
+                          disabled={deletingReportId === rep.id}
+                          aria-label={`Delete report ${rep.title}`}
+                          className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-1.5 text-zinc-500 hover:border-rose-500/30 hover:text-rose-400 disabled:opacity-40"
+                        >
+                          {deletingReportId === rep.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-3.5 w-3.5" />
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
       </main>
 
       <CreateWorkspaceModal
@@ -521,6 +669,19 @@ export function ProjectWorkspaceClient() {
           setDatasets(freshDatasets);
         }}
       />
+
+      {generateReportTarget.open && (
+        <GenerateReportModal
+          key={generateReportTarget.datasetId || "default-ds"}
+          datasets={datasets}
+          initialDatasetId={generateReportTarget.datasetId}
+          onCreated={(created) => {
+            setGenerateReportTarget({ open: false });
+            router.push(`/projects/${projectId}/reports/${created.id}`);
+          }}
+          onClose={() => setGenerateReportTarget({ open: false })}
+        />
+      )}
     </div>
   );
 }

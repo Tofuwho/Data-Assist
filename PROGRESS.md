@@ -222,3 +222,46 @@
     2. Open `http://localhost:3000`, register or sign in, and open or create a project.
     3. Click **Upload Dataset**, drop `fixtures/messy_sales.csv`, and wait for profiling and deterministic issue detection to mark it `Ready`.
     4. Click **Explore Dataset** to scroll the virtualized grid, click the `Date` column header to inspect mixed formats in the Column Profile sidebar, and click any issue (e.g. `type_violation` or `label_variants`) in the Issues panel to filter and highlight the exact affected rows.
+
+
+---
+
+## Stakeholder Data Analysis & Reporting Expansion (Early Phase 3 Core)
+
+### Task S.1 — Deterministic Analysis Engine & Swappable `LLMClient` Narrative Layer
+- **Status:** Completed
+- **Decisions Made:**
+  - Implemented `apps/api/app/services/analysis/resolver.py` (`resolve_effective_dataset`, `resolve_effective_dataset_from_version`, `extract_numeric_for_analysis`, `extract_date_bucket`) to compute live metrics over versioned `cell_values` overlays while keeping `rows.raw_json` strictly immutable and never guessing ambiguous numeric dates (`MM/DD` vs `DD/MM`).
+  - Implemented `apps/api/app/services/analysis/analyzer.py`:
+    - `analyze_dataset` computes dataset completeness, readiness status/score, ranked numeric measures (`sum`, `mean`, `median`, `min`, `max`, `q1`, `q3`, `iqr`), mixed-scale safety exclusions (e.g., `Satisfaction_Score`), mixed currency notation caveats, unambiguous chronological time-series, categorical segment breakdowns, pairwise Pearson correlations (`n >= 5`), and structured `data_quality_caveats`.
+    - `recommend_report_layout` auto-detects and builds starter stakeholder report layouts (`executive_sales`, `survey_insights`, `inventory_summary`, `general_summary`).
+    - `build_metrics_packet_from_blocks` extracts verified aggregated numbers for LLM synthesis without passing raw row dumps.
+  - Implemented swappable `LLMClient` (`apps/api/app/services/ai/client.py`) supporting offline `MockLLMClient` (default `LLM_PROVIDER=mock`), `OpenAILLMClient`, `AnthropicLLMClient`, and `GeminiLLMClient` via `httpx` with SHA-256 prompt-hash logging.
+  - Implemented `apps/api/app/services/ai/narrative.py` with strict JSON schema validation, 1-retry malformed-JSON/unverified recovery, and `verify_narrative_numbers` checking every number and ISO date citation in generated prose against backend metrics.
+  - Added unit tests in `apps/api/tests/test_analysis_unit.py` verifying metric computation, ambiguous date exclusion, offline `MockLLMClient` grounding, and hallucination detection.
+
+### Task S.2 — Server-Side Report Evaluator, Lineage, XLSX Workbook Export & Reports API
+- **Status:** Completed
+- **Decisions Made:**
+  - Implemented `apps/api/app/services/reports/evaluator.py`:
+    - `evaluate_report_blocks` computes `kpi`, `bar_chart`, `pie_chart`, `line_chart`, `area_chart`, `summary_table`, `data_quality`, and `narrative` blocks server-side from resolved `cell_values`.
+    - `extract_block_lineage` traces exact contributing (and `__excluded__`) source `RowModel` records plus matching `Change` audit entries with cursor pagination.
+  - Implemented `apps/api/app/services/reports/exporter.py` (`build_report_xlsx`) using `openpyxl` (`>=3.1.0` already declared) to produce a multi-sheet stakeholder workbook (`Executive Summary`, `Metrics & Charts Data`, `Source Data Audit`) with Excel formula-injection sanitization.
+  - Added `require_report_role` in `apps/api/app/routers/deps.py`, schemas in `apps/api/app/schemas/report.py`, and endpoints in `apps/api/app/routers/reports.py` (`GET /datasets/{id}/analysis`, `POST /datasets/{id}/analyze`, project report CRUD, `/reports/{id}/compute`, `/reports/{id}/narrative`, `/reports/{id}/blocks/{block_id}/lineage`, `/reports/{id}/export`).
+  - Added comprehensive API integration tests in `apps/api/tests/test_analysis_and_reports.py` covering all three fixtures (`messy_sales.csv`, `survey_results.csv`, `inventory.xlsx`), ambiguous dates, version-locked `CellValue` + `Change` lineage, hallucination verification, XLSX export, and RBAC (admin/steward vs stakeholder vs contributor; 37/37 Pytest tests passing, Ruff passing).
+
+### Task S.3 — Frontend Stakeholder Report Builder, Presentation View & Lineage Drawer
+- **Status:** Completed
+- **Decisions Made:**
+  - Extended `apps/web/src/lib/api.ts` with typed analysis, report layout, lineage, and binary `.xlsx` download helpers.
+  - Created `apps/web/src/components/ReportBlockCard.tsx` rendering responsive grid blocks with Recharts charts (`BarChart`, `PieChart`, `LineChart`, `AreaChart`), clickable chart elements/rows/KPIs, Backend-Verified numeric narrative shield badges, data readiness & caveat cards, and print-friendly styling.
+  - Created `apps/web/src/components/LineageDrawer.tsx` inspecting exact contributing and excluded `RowModel` records, raw-vs-effective overlaid diffs, and `Change` audit trail links back to Dataset Explorer.
+  - Created `apps/web/src/components/BlockEditorModal.tsx` and `apps/web/src/components/GenerateReportModal.tsx` allowing analysts to add/configure custom KPIs, charts, summary tables, narratives, and curated templates.
+  - Built `/projects/[projectId]/reports/[reportId]` (`page.tsx` with `<Suspense>` + `ReportBuilderClient.tsx`) supporting Edit Mode vs Presentation Mode (defaulting stakeholders to Presentation Mode), inline rename/status workflow selector, block reorder/edit/delete, XLSX download, and Print/PDF (`@media print` in `apps/web/src/app/globals.css`).
+  - Wired **Generate Stakeholder Report** / **Analyze** entrypoints and a **Stakeholder Reports** section directly inside `DatasetExplorerClient.tsx` and `ProjectWorkspaceClient.tsx`.
+  - Verified with `npm run lint` (0 errors), `tsc --noEmit` (0 errors), and clean Next.js 16 production build (`npm run build`).
+- **How to demo Stakeholder Analysis & Reporting:**
+  1. From any ready dataset (either via **Analyze** on the Project page or **Generate Stakeholder Report** inside Dataset Explorer), pick a template (`Auto-Recommend` works across sales, survey, and inventory files) and click **Generate Report**.
+  2. Review the **Executive Briefing** banner (with **Backend-Verified Narrative** citation count), KPI totals (showing both contributing rows and excluded unparseable records), time trends, segment breakdowns, and honest **Data Quality & Methodology Caveats**.
+  3. Click any KPI figure, chart bar, donut slice, or table row to open the **Source Row Lineage** drawer and inspect exact source `RowModel` rows, excluded records, and versioned changes.
+  4. Use **Add Block** / edit controls to customize metrics, toggle **Presentation View** for clean executive review, and click **Export XLSX** or **Print / PDF** to distribute to company stakeholders.
