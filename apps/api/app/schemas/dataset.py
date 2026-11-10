@@ -27,8 +27,22 @@ class DatasetResponse(BaseModel):
     source_type: str
     status: str
     error_message: str | None = None
+    stats_json: dict[str, Any] | None = None
     created_at: datetime
     updated_at: datetime
+
+
+class ColumnResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    dataset_id: str
+    name: str
+    position: int
+    inferred_type: str | None = None
+    semantic_hint: str | None = None
+    stats_json: dict[str, Any] | None = None
+    created_at: datetime
 
 
 class JobStatusResponse(BaseModel):

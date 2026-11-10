@@ -6,14 +6,17 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.models.database import get_db
-from app.models.entities import Dataset, Membership, Project
-from app.routers.deps import require_project_role
+from app.models.entities import ColumnModel, Dataset, Membership, Project
+from app.routers.deps import require_dataset_role, require_project_role
 from app.schemas.dataset import (
+    ColumnResponse,
     DatasetItemSummary,
     DatasetResponse,
     DatasetUploadResponse,
+    JobStatusResponse,
 )
 from app.services.ingest import inspect_xlsx_sheets, parse_and_persist_dataset
+from app.services.profiling import profile_dataset
 from app.services.storage import get_storage
 from app.workers import enqueue
 
@@ -173,13 +176,54 @@ def list_project_datasets(
 @router.get("/datasets/{dataset_id}", response_model=DatasetResponse)
 def get_dataset(
     dataset_id: str,
+    dataset_ctx: Annotated[
+        tuple[Dataset, Project, Membership],
+        Depends(require_dataset_role(["admin", "steward", "stakeholder", "contributor"])),
+    ],
+):
+    """Retrieve metadata, status, and profiling stats for a specific dataset."""
+    dataset, _, _ = dataset_ctx
+    return dataset
+
+
+@router.get("/datasets/{dataset_id}/columns", response_model=list[ColumnResponse])
+def get_dataset_columns(
+    dataset_id: str,
+    dataset_ctx: Annotated[
+        tuple[Dataset, Project, Membership],
+        Depends(require_dataset_role(["admin", "steward", "stakeholder", "contributor"])),
+    ],
     db: Annotated[Session, Depends(get_db)],
 ):
-    """Retrieve metadata and status for a specific dataset."""
-    dataset = db.query(Dataset).filter(Dataset.id == dataset_id).first()
-    if not dataset:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Dataset {dataset_id} not found",
-        )
-    return dataset
+    """Retrieve ordered columns and their statistical profiles for a dataset."""
+    dataset, _, _ = dataset_ctx
+    columns = (
+        db.query(ColumnModel)
+        .filter(ColumnModel.dataset_id == dataset.id)
+        .order_by(ColumnModel.position)
+        .all()
+    )
+    return columns
+
+
+@router.post(
+    "/datasets/{dataset_id}/profile",
+    response_model=JobStatusResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+def trigger_dataset_profile(
+    dataset_id: str,
+    dataset_ctx: Annotated[
+        tuple[Dataset, Project, Membership],
+        Depends(require_dataset_role(["admin", "steward"])),
+    ],
+):
+    """Manually trigger re-profiling of a dataset."""
+    dataset, _, _ = dataset_ctx
+    job = enqueue(profile_dataset, dataset_id=dataset.id)
+    return JobStatusResponse(
+        job_id=job.id,
+        status=job.get_status(),
+        result=job.result,
+        error=job.error,
+    )

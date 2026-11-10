@@ -222,7 +222,7 @@ def parse_and_persist_dataset(
     created_by: str | None = None,
     sheet_name: str | None = None,
 ) -> dict[str, Any]:
-    """Parse the raw file and persist columns and rows into the database."""
+    """Parse the raw file, persist columns/rows, and chain the profiling job."""
     path = Path(file_path)
     if not path.is_file():
         raise FileNotFoundError(f"Source file not found at: {file_path}")
@@ -282,20 +282,6 @@ def parse_and_persist_dataset(
         dataset.status = "ready"
         dataset.error_message = None
         db.commit()
-
-        logger.info(
-            "Successfully parsed dataset %s: %d columns, %d rows",
-            dataset_id,
-            len(headers),
-            len(rows),
-        )
-        return {
-            "dataset_id": dataset.id,
-            "columns": len(headers),
-            "rows": len(rows),
-            "status": "ready",
-        }
-
     except Exception as exc:
         db.rollback()
         try:
@@ -310,3 +296,24 @@ def parse_and_persist_dataset(
         raise
     finally:
         db.close()
+
+    # Chain profiling job once ingest transaction is committed and closed
+    from app.services.profiling import profile_dataset
+    from app.workers import enqueue
+
+    profile_job = enqueue(profile_dataset, dataset_id=dataset_id)
+
+    logger.info(
+        "Successfully parsed dataset %s: %d columns, %d rows (profile_job=%s)",
+        dataset_id,
+        len(headers),
+        len(rows),
+        profile_job.id,
+    )
+    return {
+        "dataset_id": dataset_id,
+        "columns": len(headers),
+        "rows": len(rows),
+        "status": "ready",
+        "profile_job_id": profile_job.id,
+    }

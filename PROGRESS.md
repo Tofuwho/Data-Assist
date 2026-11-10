@@ -147,3 +147,17 @@
   - All 15 tests in test suite pass with 100% green status.
   - Raw file bytes preserved byte-identically on disk as required by Core Principle 1.
 
+
+### Task 1.2 — Profiling Job and Column/Dataset Statistics
+- **Status:** Completed
+- **Decisions Made:**
+  - Added `stats_json` column to `Dataset` model (`apps/api/app/models/entities.py`) and created Alembic migration `b3c4d5e6f7a8_add_dataset_stats_json.py`.
+  - Implemented profiling service (`apps/api/app/services/profiling/profiler.py`) computing per-column `inferred_type`, `semantic_hint`, `null_count`, `null_like_count`, `empty_count`, `null_pct`, `distinct_count`, `top_values`, `format_patterns`, numeric summary stats (`min`, `max`, `mean`, `median`, `sum`, `q1`, `q3`, `iqr`), text stats (`min_length`, `max_length`, `avg_length`, `whitespace_pct`, `case_distribution`), and date stats (`formats`, `ambiguous_count`, `min`, `max`).
+  - Added identifier/leading-zero/phone guards so ZIP codes, phone numbers, and IDs (`TX1001`, `02138`, `SKU-001`) are never misclassified as integers.
+  - Recorded ambiguous numeric dates (e.g. `03/04/2025`) without silently picking `MM/DD` vs `DD/MM`.
+  - Chained `enqueue(profile_dataset, ...)` automatically after `parse_and_persist_dataset` completes.
+  - Added `require_dataset_role` RBAC dependency and `GET /api/v1/datasets/{dataset_id}/columns` + `POST /api/v1/datasets/{dataset_id}/profile` endpoints.
+  - Fixed missing CSV double-quotes around comma-formatted currency values in `fixtures/messy_sales.csv` so all 7 columns align cleanly across all 15 rows.
+  - Added comprehensive tests in `apps/api/tests/test_profiling.py` covering all three fixtures plus edge cases (22/22 backend tests passing, Ruff passing).
+- **Notes / Observations:**
+  - Dataset profiling also persists dataset-level completeness % (`completeness_pct`), row/column counts, and profiling timing in `datasets.stats_json`.

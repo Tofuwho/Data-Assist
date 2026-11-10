@@ -103,6 +103,7 @@ class Dataset(Base):
     raw_file_path = Column(String(500), nullable=False)
     status = Column(String(50), default="processing", nullable=False)  # processing | ready | failed
     error_message = Column(Text, nullable=True)
+    stats_json = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), default=get_utc_now, nullable=False)
     updated_at = Column(DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now, nullable=False)
 
