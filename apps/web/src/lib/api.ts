@@ -49,8 +49,12 @@ export interface IssueCounts {
 export interface DatasetStats {
   row_count?: number;
   column_count?: number;
+  total_cells?: number;
+  null_cells?: number;
+  null_like_cells?: number;
   completeness_pct?: number;
   profiled_at?: string;
+  profile_duration_ms?: number;
   duration_ms?: number;
   sheet_name?: string;
 }
@@ -107,7 +111,8 @@ export interface ColumnProfileStats {
   top_values?: TopValueItem[];
   format_patterns?: Record<string, number>;
   numeric?: {
-    count?: number;
+    valid_count?: number;
+    invalid_count?: number;
     min?: number;
     max?: number;
     mean?: number;
@@ -125,7 +130,7 @@ export interface ColumnProfileStats {
     whitespace_pct?: number;
     case_distribution?: Record<string, number>;
   } | null;
-  dates?: {
+  date?: {
     formats?: Record<string, number>;
     ambiguous_count?: number;
     min?: string | null;

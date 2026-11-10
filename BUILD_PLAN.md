@@ -101,7 +101,7 @@ Create with Alembic migrations.
 - [x] **1.1** File upload endpoint (CSV, XLSX). Store raw file untouched. Parse into `rows.raw_json` and `columns`. Handle encodings, delimiters, header detection, multiple Excel sheets.
 - [x] **1.2** Profiling job (async worker): per column compute inferred type, null %, distinct count, top values, min/max, format patterns (e.g., date formats mixed), and write `stats_json`.
 - [x] **1.3** Issue detection (deterministic): missing values, exact and near duplicates, mixed formats in one column, outliers, inconsistent casing/whitespace, values that violate inferred type.
-- [ ] **1.4** Frontend: dataset page with virtualized grid, column profile sidebar, issues list with counts and severity.
+- [x] **1.4** Frontend: dataset page with virtualized grid, column profile sidebar, issues list with counts and severity.
 
 **Done when:** uploading `fixtures/messy_sales.csv` shows the grid, correct column profiles, and a list of detected issues, with tests covering each detector.
 
@@ -195,7 +195,7 @@ Create in `/fixtures` before building detectors:
 
 ## 9. Definition of done (MVP = Phases 0–3 + 4.1, 4.4)
 
-- [ ] A user can upload a messy file and see profiling and issues.
+- [x] A user can upload a messy file and see profiling and issues.
 - [ ] Cleaning via rules, AI suggestions, and manual edits works with full history and undo.
 - [ ] A report can be built, traced to source rows, exported, and shared.
 - [ ] A second user can comment and approve.

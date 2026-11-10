@@ -205,3 +205,20 @@
   - Verified with ESLint (`npm run lint`), TypeScript (`tsc --noEmit`), and Next.js Turbopack production build (`npm run build`).
 - **Notes / Observations:**
   - Next.js 16 with `cacheComponents: true` requires wrapping Client Components using `useParams()` inside a `<Suspense>` boundary on dynamic routes so the static App Shell prerenders cleanly as Partial Prerender (`◐`).
+
+### Task 1.6 — Frontend Dataset Explorer (Virtualized Grid, Column Profile Sidebar, Issues Panel)
+- **Status:** Completed (Phase 1 MVP Core Complete)
+- **Decisions Made:**
+  - Added frontend dependencies in `apps/web/package.json` (`@tanstack/react-table` `^9.3.1` for headless column sizing/resizing and table rendering, `@tanstack/react-virtual` `^3.14.26` for windowed row virtualization, and `recharts` `^3.10.1` for column top-value distribution and upcoming stakeholder reporting charts).
+  - Created `apps/web/src/components/DatasetGrid.tsx` using TanStack Table v9 (`useTable` + `columnSizingFeature` + `columnResizingFeature`) and `useVirtualizer`: sticky header, column resize drag handles, numeric-aware server sort toggles, cursor-based infinite scroll pagination, and severity-tinted cell/row highlighting for detected issues.
+  - Created `apps/web/src/components/ColumnProfileSidebar.tsx` opening on column header click (or issue inspect action): displays `inferred_type`, `semantic_hint`, null vs null-like counts, unambiguous date format breakdowns & ambiguity alerts, numeric summary (`min`, `max`, `mean`, `median`, `sum`, `iqr`), text lengths/whitespace/case distribution, format shapes, and a Recharts horizontal bar chart of top values.
+  - Created `apps/web/src/components/IssuesPanel.tsx` grouping issues by severity (`critical`, `high`, `medium`, `low`) with filters by severity, issue type, and column; clicking an issue filters the grid (`issue_id` query) and highlights affected cells/rows.
+  - Created `/projects/[projectId]/datasets/[datasetId]` (`page.tsx` + `DatasetExplorerClient.tsx`) with summary metrics bar, search filter, re-profile trigger (admin/steward), and responsive loading/empty/error states.
+  - Verified with `npm run lint` (0 errors), `tsc --noEmit` (0 errors), and `npm run build` (Next.js 16 Turbopack production build passed).
+- **Notes / Observations:**
+  - **`cell_values` overlay design (verified in Task 1.4):** Subsequent versions store only changed cells in `cell_values`; `GET /datasets/{id}/rows` and reporting engines resolve effective cell state by merging `rows.raw_json` with ordered `cell_values` up to the requested `dataset_version_id`.
+  - **How to demo Phase 1:**
+    1. Start backend API (`cd apps/api && .\.venv\Scripts\uvicorn app.main:app --reload --port 8000`) and frontend (`cd apps/web && npm run dev`).
+    2. Open `http://localhost:3000`, register or sign in, and open or create a project.
+    3. Click **Upload Dataset**, drop `fixtures/messy_sales.csv`, and wait for profiling and deterministic issue detection to mark it `Ready`.
+    4. Click **Explore Dataset** to scroll the virtualized grid, click the `Date` column header to inspect mixed formats in the Column Profile sidebar, and click any issue (e.g. `type_violation` or `label_variants`) in the Issues panel to filter and highlight the exact affected rows.

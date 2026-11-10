@@ -103,6 +103,11 @@ export function UploadDatasetModal({
               const resObj = jobRes.result as Record<string, unknown>;
               if (typeof resObj.profile_job_id === "string" && resObj.profile_job_id !== item.jobId) {
                 nextJobId = resObj.profile_job_id;
+              } else if (
+                typeof resObj.issue_detection_job_id === "string" &&
+                resObj.issue_detection_job_id !== item.jobId
+              ) {
+                nextJobId = resObj.issue_detection_job_id;
               } else if (typeof resObj.detection_job_id === "string" && resObj.detection_job_id !== item.jobId) {
                 nextJobId = resObj.detection_job_id;
               }
