@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import { Workspace } from "@/lib/api";
 import {
   Building2,
   ChevronDown,
@@ -14,9 +16,10 @@ import {
 
 interface HeaderProps {
   onOpenCreateWorkspace: () => void;
+  onWorkspaceSelected?: (workspace: Workspace) => void;
 }
 
-export function Header({ onOpenCreateWorkspace }: HeaderProps) {
+export function Header({ onOpenCreateWorkspace, onWorkspaceSelected }: HeaderProps) {
   const { user, workspaces, currentWorkspace, setCurrentWorkspace, logout } = useAuth();
   const [wsMenuOpen, setWsMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -55,15 +58,15 @@ export function Header({ onOpenCreateWorkspace }: HeaderProps) {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Brand & Workspace Switcher */}
         <div className="flex items-center space-x-6">
-          <div className="flex items-center space-x-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-500 shadow-lg shadow-indigo-500/20 ring-1 ring-white/20">
+          <Link href="/" className="group flex items-center space-x-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-500 shadow-lg shadow-indigo-500/20 ring-1 ring-white/20 transition-transform group-hover:scale-105">
               <Sparkles className="h-5 w-5 text-white" />
             </div>
             <div className="flex flex-col">
               <span className="text-base font-bold tracking-tight text-white">ClearData</span>
               <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">Data Platform</span>
             </div>
-          </div>
+          </Link>
 
           <div className="h-5 w-[1px] bg-zinc-800" />
 
@@ -101,6 +104,9 @@ export function Header({ onOpenCreateWorkspace }: HeaderProps) {
                           onClick={() => {
                             setCurrentWorkspace(ws);
                             setWsMenuOpen(false);
+                            if (!isSelected && onWorkspaceSelected) {
+                              onWorkspaceSelected(ws);
+                            }
                           }}
                           className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-sm transition-colors ${
                             isSelected

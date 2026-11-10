@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Header } from "@/components/Header";
 import { AuthCard } from "@/components/AuthCard";
@@ -17,6 +18,7 @@ import {
 } from "lucide-react";
 
 export default function Home() {
+  const router = useRouter();
   const { user, currentWorkspace, loading, refreshWorkspaces } = useAuth();
   const [createWsOpen, setCreateWsOpen] = useState(false);
   const [createProjOpen, setCreateProjOpen] = useState(false);
@@ -182,6 +184,7 @@ export default function Home() {
               key={`${currentWorkspace.id}-${projectRefreshKey}`}
               workspace={currentWorkspace}
               onOpenCreateProject={() => setCreateProjOpen(true)}
+              onSelectProject={(project) => router.push(`/projects/${project.id}`)}
             />
           </div>
         ) : (

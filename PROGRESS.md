@@ -193,3 +193,15 @@
   - Added API integration tests in `apps/api/tests/test_dataset_api.py` verifying pagination boundaries, limit validation, numeric sorting, filtering, issue row focus, stakeholder/contributor RBAC, and 404 responses (29/29 tests passing, Ruff passing).
 - **Notes / Observations:**
   - `RowModel.raw_json` remains untouched; effective row presentation merges `raw_json` with versioned `CellValue` overlays cleanly.
+
+### Task 1.5 — Frontend Upload & Dataset List
+- **Status:** Completed
+- **Decisions Made:**
+  - Extended `apps/web/src/lib/api.ts` with typed schemas (`Dataset`, `DatasetUploadResponse`, `JobStatus`, `DatasetColumn`, `DatasetIssue`, `RowPage`) and endpoints (`getProject`, `listDatasets`, `uploadDataset` via `XMLHttpRequest` for upload progress events without forcing JSON `Content-Type` on `FormData`, `getJobStatus`, `getDataset`, `getDatasetColumns`, `getDatasetRows`, `getDatasetIssues`, `reprofileDataset`).
+  - Wired `ProjectList` click navigation from `/` to `/projects/[projectId]` and linked the `Header` ClearData brand back to `/`.
+  - Created `apps/web/src/components/UploadDatasetModal.tsx` with drag-and-drop file upload, `.csv`/`.tsv`/`.xlsx` + 25 MB client-side validation, upload progress indicator, multi-dataset/multi-sheet background job polling (`GET /api/v1/jobs/{job_id}` + chained profile/detection status), and readable error handling.
+  - Created `/projects/[projectId]` (`apps/web/src/app/projects/[projectId]/page.tsx` + `ProjectWorkspaceClient.tsx`) wrapped in a React `<Suspense>` boundary compatible with Next.js 16 `cacheComponents` & `partialPrefetching`.
+  - Implemented dataset list cards with status badges (`processing`, `ready`, `failed`), inline failure messages, row/column metrics, completeness progress bars, open issue counts by severity, role-gated upload access (`admin`/`steward`), and auto-refresh polling while datasets are processing.
+  - Verified with ESLint (`npm run lint`), TypeScript (`tsc --noEmit`), and Next.js Turbopack production build (`npm run build`).
+- **Notes / Observations:**
+  - Next.js 16 with `cacheComponents: true` requires wrapping Client Components using `useParams()` inside a `<Suspense>` boundary on dynamic routes so the static App Shell prerenders cleanly as Partial Prerender (`◐`).
