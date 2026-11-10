@@ -181,3 +181,15 @@
   - Added comprehensive detector tests in `apps/api/tests/test_detectors.py` including a zero-issue clean dataset test (27/27 tests passing, Ruff passing).
 - **Notes / Observations:**
   - Keeping `label_variants` focused on categorical dimensions and `near_duplicates` focused on customer/entity columns and non-ID row similarity keeps the detected issues actionable and non-noisy across all fixtures.
+
+
+### Task 1.4 — Dataset API for Frontend (Pagination, Sorting, Filtering, RBAC)
+- **Status:** Completed
+- **Decisions Made:**
+  - Added `IssueCounts` and `issue_counts` to `DatasetResponse`, plus `RowItemResponse` and `RowPageResponse` schemas in `apps/api/app/schemas/dataset.py`.
+  - Added `GET /api/v1/projects/{project_id}` (`ProjectResponse`) for frontend project page navigation and breadcrumbs.
+  - Added batch `issue_counts` aggregation to `list_project_datasets` and `get_dataset`, plus contributor assignment filtering stub in `list_project_datasets` and `require_dataset_role` (allowing contributors access only when at least one `Issue` is assigned to them).
+  - Implemented `GET /api/v1/datasets/{dataset_id}/rows` supporting cursor-based pagination (`limit` default 100, max 500), fast SQL keyset path when unsorted/unfiltered, numeric-aware dynamic sorting (`integer`, `decimal`, `currency`, `percentage`), case-insensitive contains filtering across cell values, `issue_id` row filtering, and resolution of `CellValue` overlays up to the requested/latest `DatasetVersion`.
+  - Added API integration tests in `apps/api/tests/test_dataset_api.py` verifying pagination boundaries, limit validation, numeric sorting, filtering, issue row focus, stakeholder/contributor RBAC, and 404 responses (29/29 tests passing, Ruff passing).
+- **Notes / Observations:**
+  - `RowModel.raw_json` remains untouched; effective row presentation merges `raw_json` with versioned `CellValue` overlays cleanly.

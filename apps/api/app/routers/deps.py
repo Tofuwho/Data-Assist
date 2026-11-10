@@ -5,7 +5,7 @@ from fastapi import Depends, Header, HTTPException, Path, status
 from sqlalchemy.orm import Session
 
 from app.models.database import get_db
-from app.models.entities import Dataset, Membership, Project, User
+from app.models.entities import Dataset, Issue, Membership, Project, User
 from app.services.auth import decode_access_token
 
 
@@ -159,6 +159,20 @@ def require_dataset_role(allowed_roles: list[str]) -> Callable:
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Operation requires one of roles: {', '.join(allowed_roles)}. Your role is '{membership.role}'",
             )
+
+        # Contributor stub check (full dataset/task assignment arrives in Phase 4):
+        # contributors may only inspect datasets where at least one issue is assigned to them.
+        if membership.role == "contributor":
+            assigned = (
+                db.query(Issue.id)
+                .filter(Issue.dataset_id == dataset.id, Issue.assignee_id == current_user.id)
+                .first()
+            )
+            if not assigned:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Contributors may only access datasets assigned to them",
+                )
 
         return dataset, project, membership
 
