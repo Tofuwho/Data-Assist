@@ -271,8 +271,8 @@ def test_report_crud_recompute_xlsx_export_and_rbac(client: TestClient, db_sessi
     ws_id, project_id, admin_headers = _setup_workspace(client)
     csv_payload = (
         b"Item,Category,Revenue\n"
-        b"=SUM(A1),Hardware,$500.00\n"
-        b"Widget B,Software,$1200.00\n"
+        b"=SUM(A1),+Hardware,$500.00\n"
+        b"-2+3,@Software,$1200.00\n"
     )
     up = client.post(
         f"/api/v1/projects/{project_id}/datasets",
@@ -331,9 +331,18 @@ def test_report_crud_recompute_xlsx_export_and_rbac(client: TestClient, db_sessi
     assert "spreadsheetml" in exp_res.headers["content-type"]
     wb = load_workbook(io.BytesIO(exp_res.content))
     assert wb.sheetnames == ["Executive Summary", "Metrics & Charts Data", "Source Data Audit"]
+    ws_data = wb["Metrics & Charts Data"]
     ws_audit = wb["Source Data Audit"]
-    # Formula injection guard prefixes '=' with apostrophe
+    # Formula injection guard prefixes '=', '+', '-', '@' across both Metrics and Audit sheets
     assert ws_audit.cell(row=2, column=2).value == "'=SUM(A1)"
+    assert ws_audit.cell(row=2, column=3).value == "'+Hardware"
+    assert ws_audit.cell(row=3, column=2).value == "'-2+3"
+    assert ws_audit.cell(row=3, column=3).value == "'@Software"
+    sheet2_labels = {
+        ws_data.cell(row=r, column=1).value for r in range(1, ws_data.max_row + 1)
+    }
+    assert "'+Hardware" in sheet2_labels
+    assert "'@Software" in sheet2_labels
 
     # Register stakeholder & contributor with assigned issue
     reg_stake = client.post(

@@ -154,7 +154,7 @@ cd apps/api
 # 1. Lint & import order check
 ruff check .
 
-# 2. Run the full test suite (39 tests across 11 suites)
+# 2. Run the full test suite (42 tests across 11 suites)
 pytest
 ```
 
@@ -162,12 +162,12 @@ pytest
 
 #### What the Backend Test Suites Cover
 - [`test_auth_and_workspaces.py`](apps/api/tests/test_auth_and_workspaces.py) — registration, login, wrong-password `401`, `/auth/me`, workspace & project RBAC.
-- [`test_startup_seed.py`](apps/api/tests/test_startup_seed.py) — default SQLite config fallback & idempotent dev demo user seeding.
+- [`test_startup_seed.py`](apps/api/tests/test_startup_seed.py) — default SQLite config fallback, production `SECRET_KEY` startup guard, and idempotent dev demo user seeding.
 - [`test_models.py`](apps/api/tests/test_models.py) — schema relationships, JSON column fidelity, cascading deletes.
-- [`test_ingest.py`](apps/api/tests/test_ingest.py) — CSV/TSV/multi-sheet `.xlsx` ingestion, BOM/semicolon handling, duplicate headers, RBAC guards.
+- [`test_ingest.py`](apps/api/tests/test_ingest.py) — CSV/TSV/multi-sheet `.xlsx` ingestion, BOM/semicolon handling, duplicate headers, bounded upload limit (`413`), and dataset/job RBAC guards.
 - [`test_profiling.py`](apps/api/tests/test_profiling.py) & [`test_detectors.py`](apps/api/tests/test_detectors.py) — column statistics, identifier vs number disambiguation, null-like tokens, ambiguous dates, duplicate rows.
 - [`test_dataset_api.py`](apps/api/tests/test_dataset_api.py) — cursor pagination, numeric-aware sorting, search filter, issue filtering, contributor RBAC stub.
-- [`test_analysis_unit.py`](apps/api/tests/test_analysis_unit.py) & [`test_analysis_and_reports.py`](apps/api/tests/test_analysis_and_reports.py) — analysis metrics across all 3 fixtures, mixed-scale/currency safety, ambiguous date exclusion, hallucination catching in `verify_narrative_numbers`, version-locked `CellValue` overlay lineage, report CRUD, multi-sheet `.xlsx` export, and report RBAC.
+- [`test_analysis_unit.py`](apps/api/tests/test_analysis_unit.py) & [`test_analysis_and_reports.py`](apps/api/tests/test_analysis_and_reports.py) — analysis metrics across all 3 fixtures, mixed-scale/currency safety, ambiguous date exclusion, hallucination catching in `verify_narrative_numbers`, version-locked `CellValue` overlay lineage, report CRUD, multi-sheet `.xlsx` export with formula sanitization, and report RBAC.
 - [`test_jobs.py`](apps/api/tests/test_jobs.py) & [`test_health.py`](apps/api/tests/test_health.py) — inline & RQ queue dispatch + `/api/v1/health`.
 
 ### Frontend Checks (`apps/web`)
@@ -207,6 +207,7 @@ Key environment variables:
 | Variable | Default | Purpose |
 |---|---|---|
 | `ENVIRONMENT` | `development` | `development`, `test`, or `production` (demo seeding only runs in `development`) |
+| `SECRET_KEY` | dev-only default | JWT signing secret; API refuses to boot outside `development`/`test` if unset, default, or `< 32` chars |
 | `DATABASE_URL` | `sqlite:///.../apps/api/cleardata.db` | Database connection string (`sqlite:///...` or `postgresql://...`) |
 | `JOBS_INLINE` | `true` | `true` runs ingestion/profiling synchronously in-process; `false` uses Redis + RQ |
 | `REDIS_URL` | `redis://localhost:6379/0` | Redis URL when `JOBS_INLINE=false` |
@@ -251,7 +252,7 @@ Data-Assist/
 │   │   │   │   ├── ai/          # Swappable LLMClient & numeric grounding verifier
 │   │   │   │   └── reports/     # Block evaluator, row lineage & XLSX exporter
 │   │   │   └── workers/         # Inline + Redis/RQ queue abstraction
-│   │   └── tests/               # 11 Pytest unit & API integration suites (39 tests)
+│   │   └── tests/               # 11 Pytest unit & API integration suites (42 tests)
 │   └── web/
 │       └── src/
 │           ├── app/             # Next.js App Router pages (Home, Project, Explorer, Report)

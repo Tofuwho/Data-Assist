@@ -102,8 +102,22 @@ def test_upload_messy_sales_fixture(client: TestClient, db_session):
     assert versions[0].version_number == 1
     assert versions[0].note == "Original import"
 
-    # Verify job polling endpoint
-    job_res = client.get(f"/api/v1/jobs/{data['job_id']}")
+    # Verify job polling endpoint enforces authentication + workspace isolation
+    anon_job_res = client.get(f"/api/v1/jobs/{data['job_id']}")
+    assert anon_job_res.status_code == 401
+
+    outsider_reg = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "outsider@cleardata.io",
+            "password": "Password123!",
+            "name": "Outsider User",
+        },
+    )
+    outsider_headers = {"Authorization": f"Bearer {outsider_reg.json()['access_token']}"}
+    assert client.get(f"/api/v1/jobs/{data['job_id']}", headers=outsider_headers).status_code == 403
+
+    job_res = client.get(f"/api/v1/jobs/{data['job_id']}", headers=headers)
     assert job_res.status_code == 200
     assert job_res.json()["status"] == "finished"
 
@@ -279,3 +293,20 @@ def test_upload_rbac_contributor_forbidden(client: TestClient):
     )
     assert response.status_code == 403
     assert "Operation requires one of roles" in response.json()["error"]["message"]
+
+
+def test_upload_oversized_file_rejected(client: TestClient, monkeypatch):
+    """Streaming upload reader aborts oversized payloads cleanly with 413."""
+    from app.config import settings
+
+    _, project_id, headers = create_admin_and_project(client)
+    monkeypatch.setattr(settings, "MAX_UPLOAD_SIZE_MB", 1)
+
+    oversized_bytes = b"A,B\n" + (b"1,2\n" * 300_000)
+    response = client.post(
+        f"/api/v1/projects/{project_id}/datasets",
+        headers=headers,
+        files={"file": ("too_big.csv", io.BytesIO(oversized_bytes), "text/csv")},
+    )
+    assert response.status_code == 413
+    assert response.json()["error"]["code"] == "HTTP_413"

@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    settings.validate_runtime_security()
     ensure_local_sqlite_schema()
     seed_dev_demo_accounts()
     yield

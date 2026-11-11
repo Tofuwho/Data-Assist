@@ -7,6 +7,9 @@ ROOT_DIR = API_DIR.parent.parent
 DEFAULT_SQLITE_URL = f"sqlite:///{(API_DIR / 'cleardata.db').as_posix()}"
 
 
+DEFAULT_INSECURE_SECRET_KEY = "cleardata-dev-insecure-secret-key-replace-in-production-32bytes"
+
+
 class Settings(BaseSettings):
     """Application settings loaded from environment variables and .env file."""
 
@@ -15,7 +18,7 @@ class Settings(BaseSettings):
     DEBUG: bool = True
 
     # Security & JWT
-    SECRET_KEY: str = "cleardata-dev-insecure-secret-key-replace-in-production-32bytes"
+    SECRET_KEY: str = DEFAULT_INSECURE_SECRET_KEY
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours
 
@@ -46,6 +49,22 @@ class Settings(BaseSettings):
     @property
     def cors_origins(self) -> list[str]:
         return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",") if origin.strip()]
+
+    def validate_runtime_security(self) -> None:
+        """Fail fast if non-dev/non-test deployment uses a default or weak JWT secret."""
+        env = self.ENVIRONMENT.strip().lower()
+        if env in {"development", "test"}:
+            return
+
+        secret = self.SECRET_KEY.strip()
+        if not secret or secret == DEFAULT_INSECURE_SECRET_KEY:
+            raise RuntimeError(
+                "SECRET_KEY must be set to a secure non-default value when ENVIRONMENT is not 'development' or 'test'."
+            )
+        if len(secret) < 32:
+            raise RuntimeError(
+                "SECRET_KEY must be at least 32 characters long when ENVIRONMENT is not 'development' or 'test'."
+            )
 
     model_config = SettingsConfigDict(
         env_file=(str(ROOT_DIR / ".env"), str(API_DIR / ".env"), ".env"),

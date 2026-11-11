@@ -1,6 +1,7 @@
+import pytest
 from sqlalchemy.orm import sessionmaker
 
-from app.config import Settings
+from app.config import DEFAULT_INSECURE_SECRET_KEY, Settings
 from app.models import database
 from app.models.entities import Membership, User, Workspace
 from app.services import auth as auth_service
@@ -46,3 +47,48 @@ def test_seed_dev_demo_accounts_is_idempotent(test_engine, monkeypatch):
         with test_engine.begin() as conn:
             for table in reversed(database.Base.metadata.sorted_tables):
                 conn.execute(table.delete())
+
+
+def test_production_environment_rejects_default_or_short_secret_key():
+    insecure = Settings(
+        _env_file=None,
+        ENVIRONMENT="production",
+        SECRET_KEY=DEFAULT_INSECURE_SECRET_KEY,
+    )
+    with pytest.raises(RuntimeError, match="SECRET_KEY"):
+        insecure.validate_runtime_security()
+
+    too_short = Settings(
+        _env_file=None,
+        ENVIRONMENT="production",
+        SECRET_KEY="short-secret",
+    )
+    with pytest.raises(RuntimeError, match="32 characters"):
+        too_short.validate_runtime_security()
+
+    strong = Settings(
+        _env_file=None,
+        ENVIRONMENT="production",
+        SECRET_KEY="a" * 32,
+    )
+    strong.validate_runtime_security()
+
+
+def test_seed_dev_demo_accounts_skips_production(test_engine, monkeypatch):
+    with test_engine.begin() as conn:
+        for table in reversed(database.Base.metadata.sorted_tables):
+            conn.execute(table.delete())
+
+    testing_session_local = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
+    monkeypatch.setattr(database, "SessionLocal", testing_session_local)
+    monkeypatch.setattr(seed_service, "_is_test_runtime", lambda: False)
+    monkeypatch.setattr(seed_service.settings, "ENVIRONMENT", "production")
+
+    seed_service.seed_dev_demo_accounts()
+
+    db = testing_session_local()
+    try:
+        assert db.query(User).count() == 0
+    finally:
+        db.close()
+

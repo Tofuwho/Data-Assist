@@ -29,11 +29,16 @@ class LocalFileStorage:
         self.base_path.mkdir(parents=True, exist_ok=True)
 
     def save(self, filename: str, content: bytes) -> str:
-        safe_name = Path(filename).name
+        safe_name = Path(filename.replace("\\", "/")).name
+        if not safe_name or safe_name in {".", ".."}:
+            raise ValueError("Invalid filename for storage")
+        base_resolved = self.base_path.resolve()
         unique_prefix = uuid.uuid4().hex[:8]
-        target_path = self.base_path / f"{unique_prefix}_{safe_name}"
+        target_path = (base_resolved / f"{unique_prefix}_{safe_name}").resolve()
+        if not target_path.is_relative_to(base_resolved):
+            raise ValueError("Resolved storage path escapes storage root")
         target_path.write_bytes(content)
-        return str(target_path.resolve())
+        return str(target_path)
 
     def read(self, path: str) -> bytes:
         file_path = Path(path)

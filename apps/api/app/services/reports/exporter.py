@@ -9,6 +9,17 @@ from openpyxl.utils import get_column_letter
 from app.services.analysis.resolver import EffectiveDataset
 
 MAX_AUDIT_EXPORT_ROWS = 10000
+_FORMULA_PREFIX_CHARS = ("=", "+", "-", "@", "\t", "\r", "\n")
+
+
+def sanitize_excel_value(val: Any) -> Any:
+    """Prevent spreadsheet formula injection across untrusted text cells and headers."""
+    if not isinstance(val, str) or val == "":
+        return val
+    stripped = val.lstrip(" \t\r\n")
+    if val.startswith(_FORMULA_PREFIX_CHARS) or stripped.startswith(("=", "+", "-", "@")):
+        return f"'{val}"
+    return val
 
 
 def _auto_fit_columns(ws: Any, max_width: int = 48) -> None:
@@ -43,9 +54,11 @@ def build_report_xlsx(
     ws_exec = wb.active
     ws_exec.title = "Executive Summary"
 
-    ws_exec["A1"] = report_title
+    ws_exec["A1"] = sanitize_excel_value(report_title)
     ws_exec["A1"].font = title_font
-    ws_exec["A2"] = f"Dataset: {effective.dataset.name} (v{effective.version.version_number}) | Status: {report_status.upper()}"
+    ws_exec["A2"] = sanitize_excel_value(
+        f"Dataset: {effective.dataset.name} (v{effective.version.version_number}) | Status: {report_status.upper()}"
+    )
     ws_exec["A3"] = f"Exported: {datetime.now(UTC).strftime('%Y-%m-%d %H:%M UTC')}"
 
     overview = analysis.get("overview") or {}
@@ -82,9 +95,9 @@ def build_report_xlsx(
         row_cursor += 1
         for kb in kpi_blocks:
             d = kb.get("data") or {}
-            ws_exec.cell(row=row_cursor, column=1, value=kb.get("title", ""))
-            ws_exec.cell(row=row_cursor, column=2, value=d.get("aggregation", ""))
-            ws_exec.cell(row=row_cursor, column=3, value=d.get("formatted_value", ""))
+            ws_exec.cell(row=row_cursor, column=1, value=sanitize_excel_value(kb.get("title", "")))
+            ws_exec.cell(row=row_cursor, column=2, value=sanitize_excel_value(d.get("aggregation", "")))
+            ws_exec.cell(row=row_cursor, column=3, value=sanitize_excel_value(d.get("formatted_value", "")))
             ws_exec.cell(row=row_cursor, column=4, value=d.get("matching_rows", 0))
             ws_exec.cell(row=row_cursor, column=5, value=d.get("excluded_rows", 0))
             row_cursor += 1
@@ -97,10 +110,10 @@ def build_report_xlsx(
         ws_exec.cell(row=row_cursor, column=1, value="Executive Briefing").font = section_font
         row_cursor += 1
         ws_exec.cell(row=row_cursor, column=1, value="Headline").font = Font(bold=True)
-        ws_exec.cell(row=row_cursor, column=2, value=nd.get("headline", "")).alignment = Alignment(wrap_text=True)
+        ws_exec.cell(row=row_cursor, column=2, value=sanitize_excel_value(nd.get("headline", ""))).alignment = Alignment(wrap_text=True)
         row_cursor += 1
         ws_exec.cell(row=row_cursor, column=1, value="Summary").font = Font(bold=True)
-        ws_exec.cell(row=row_cursor, column=2, value=nd.get("executive_summary", "")).alignment = Alignment(wrap_text=True)
+        ws_exec.cell(row=row_cursor, column=2, value=sanitize_excel_value(nd.get("executive_summary", ""))).alignment = Alignment(wrap_text=True)
         row_cursor += 1
 
         verif = nd.get("verification") or {}
@@ -108,7 +121,7 @@ def build_report_xlsx(
         ws_exec.cell(
             row=row_cursor,
             column=2,
-            value=(
+            value=sanitize_excel_value(
                 f"Verified ({verif.get('total_numbers_checked', 0)} numbers checked)"
                 if verif.get("verified")
                 else f"Needs Review (Unverified: {', '.join(verif.get('unverified_numbers', []))})"
@@ -118,12 +131,12 @@ def build_report_xlsx(
 
         for idx, item in enumerate(nd.get("key_findings") or [], start=1):
             ws_exec.cell(row=row_cursor, column=1, value=f"Finding {idx}").font = Font(bold=True)
-            ws_exec.cell(row=row_cursor, column=2, value=item).alignment = Alignment(wrap_text=True)
+            ws_exec.cell(row=row_cursor, column=2, value=sanitize_excel_value(item)).alignment = Alignment(wrap_text=True)
             row_cursor += 1
 
         for idx, item in enumerate(nd.get("recommendations") or [], start=1):
             ws_exec.cell(row=row_cursor, column=1, value=f"Recommendation {idx}").font = Font(bold=True)
-            ws_exec.cell(row=row_cursor, column=2, value=item).alignment = Alignment(wrap_text=True)
+            ws_exec.cell(row=row_cursor, column=2, value=sanitize_excel_value(item)).alignment = Alignment(wrap_text=True)
             row_cursor += 1
 
     # Data Quality Caveats
@@ -138,10 +151,10 @@ def build_report_xlsx(
             cell.fill = header_fill
         row_cursor += 1
         for cav in caveats:
-            ws_exec.cell(row=row_cursor, column=1, value=str(cav.get("severity", "")).upper())
-            ws_exec.cell(row=row_cursor, column=2, value=cav.get("column") or "Dataset")
-            ws_exec.cell(row=row_cursor, column=3, value=cav.get("title", ""))
-            ws_exec.cell(row=row_cursor, column=4, value=cav.get("message", "")).alignment = Alignment(wrap_text=True)
+            ws_exec.cell(row=row_cursor, column=1, value=sanitize_excel_value(str(cav.get("severity", "")).upper()))
+            ws_exec.cell(row=row_cursor, column=2, value=sanitize_excel_value(cav.get("column") or "Dataset"))
+            ws_exec.cell(row=row_cursor, column=3, value=sanitize_excel_value(cav.get("title", "")))
+            ws_exec.cell(row=row_cursor, column=4, value=sanitize_excel_value(cav.get("message", ""))).alignment = Alignment(wrap_text=True)
             ws_exec.cell(row=row_cursor, column=5, value=cav.get("affected_count", 0))
             row_cursor += 1
 
@@ -155,7 +168,7 @@ def build_report_xlsx(
         if btype not in ("bar_chart", "pie_chart", "line_chart", "area_chart", "summary_table"):
             continue
         d = blk.get("data") or {}
-        ws_data.cell(row=data_row, column=1, value=blk.get("title", "")).font = section_font
+        ws_data.cell(row=data_row, column=1, value=sanitize_excel_value(blk.get("title", ""))).font = section_font
         data_row += 1
 
         if btype in ("line_chart", "area_chart"):
@@ -166,8 +179,8 @@ def build_report_xlsx(
                 c.fill = header_fill
             data_row += 1
             for pt in d.get("points") or []:
-                ws_data.cell(row=data_row, column=1, value=pt.get("label"))
-                ws_data.cell(row=data_row, column=2, value=pt.get("value"))
+                ws_data.cell(row=data_row, column=1, value=sanitize_excel_value(pt.get("label")))
+                ws_data.cell(row=data_row, column=2, value=sanitize_excel_value(pt.get("value")))
                 ws_data.cell(row=data_row, column=3, value=pt.get("row_count"))
                 ws_data.cell(row=data_row, column=4, value=pt.get("valid_metric_count"))
                 ws_data.cell(row=data_row, column=5, value=pt.get("excluded_rows"))
@@ -181,8 +194,8 @@ def build_report_xlsx(
                 c.fill = header_fill
             data_row += 1
             for it in items:
-                ws_data.cell(row=data_row, column=1, value=it.get("label"))
-                ws_data.cell(row=data_row, column=2, value=it.get("value"))
+                ws_data.cell(row=data_row, column=1, value=sanitize_excel_value(it.get("label")))
+                ws_data.cell(row=data_row, column=2, value=sanitize_excel_value(it.get("value")))
                 ws_data.cell(row=data_row, column=3, value=it.get("share_pct"))
                 ws_data.cell(row=data_row, column=4, value=it.get("row_count"))
                 ws_data.cell(row=data_row, column=5, value=it.get("valid_metric_count"))
@@ -198,7 +211,7 @@ def build_report_xlsx(
     ws_audit = wb.create_sheet("Source Data Audit")
     audit_headers = ["row_index", *[c.name for c in effective.columns], "modified_columns"]
     for ci, h in enumerate(audit_headers, start=1):
-        cell = ws_audit.cell(row=1, column=ci, value=h)
+        cell = ws_audit.cell(row=1, column=ci, value=sanitize_excel_value(h))
         cell.font = header_font
         cell.fill = header_fill
 
@@ -206,18 +219,13 @@ def build_report_xlsx(
         ws_audit.cell(row=r_idx, column=1, value=row.row_index)
         for ci, col in enumerate(effective.columns, start=2):
             raw_val = row.values.get(col.name, "")
-            safe_val = (
-                f"'{raw_val}"
-                if isinstance(raw_val, str) and raw_val.startswith(("=", "@", "\t", "\r"))
-                else raw_val
-            )
-            c = ws_audit.cell(row=r_idx, column=ci, value=safe_val)
+            c = ws_audit.cell(row=r_idx, column=ci, value=sanitize_excel_value(raw_val))
             if col.name in row.changed_columns:
                 c.fill = sub_fill
         ws_audit.cell(
             row=r_idx,
             column=len(audit_headers),
-            value=", ".join(sorted(row.changed_columns)) if row.changed_columns else "",
+            value=sanitize_excel_value(", ".join(sorted(row.changed_columns)) if row.changed_columns else ""),
         )
 
     _auto_fit_columns(ws_audit)
